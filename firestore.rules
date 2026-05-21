@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['role', 'content', 'timestamp', 'ownerId']) &&
+             data.keys().size() == 4 &&
+             data.role is string && (data.role == 'user' || data.role == 'assistant') &&
+             data.content is string && data.content.size() <= 10000 &&
+             data.timestamp is int &&
+             data.ownerId is string && data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId}/messages/{messageId} {
+      allow read, list: if isSignedIn() && userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                       isValidId(userId) && 
+                       userId == request.auth.uid && 
+                       isValidId(messageId) && 
+                       isValidMessage(incoming());
+                       
+      // Messages are immutable once created (assistant logs are append-only)
+      allow update, delete: if false;
+    }
+  }
+}

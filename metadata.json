@@ -1,0 +1,6 @@
+{
+  "name": "Aura - AI Assistant",
+  "description": "Next-generation AI Daily Life Assistant with a cinematic futuristic interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

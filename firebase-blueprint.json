@@ -1,0 +1,35 @@
+{
+  "entities": {
+    "Message": {
+      "title": "Message",
+      "description": "A single chat message in the assistant history.",
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["user", "assistant"],
+          "description": "The author of the message."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the message."
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "The time the message was created (as a numeric timestamp for simplicity or firestore timestamp)."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns this message."
+        }
+      },
+      "required": ["role", "content", "timestamp", "ownerId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "The conversation history for a specific user."
+    }
+  }
+}
