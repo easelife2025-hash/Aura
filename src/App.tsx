@@ -7,48 +7,9 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 
 import { db } from './firebase';
 import { useAuth } from './hooks/useAuth';
 import ParticleBackground from './components/ParticleBackground';
+import LandingPage from './components/landing/LandingPage';
 import { cn } from './utils';
 import { Message } from './types';
-
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }}
-      className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6"
-    >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="glass-panel p-10 rounded-3xl max-w-md w-full flex flex-col items-center text-center relative overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 z-0 pointer-events-none rounded-3xl animate-gradient" />
-        
-        <div className="w-20 h-20 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center mb-6 z-10 shadow-[0_0_40px_rgba(168,85,247,0.3)]">
-          <Sparkles className="w-10 h-10 text-purple-400" />
-        </div>
-        
-        <h1 className="text-4xl font-bold mb-2 tracking-tight z-10 font-sans">
-          Welcome to <span className="text-gradient">Aura</span>
-        </h1>
-        <p className="text-slate-400 mb-8 z-10 font-light">
-          Your next-generation AI companion. Deeply empathetic, hyper-competent.
-        </p>
-
-        <button 
-          onClick={onLogin}
-          className="relative z-10 group w-full py-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <UserIcon className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
-          <span className="font-medium text-slate-200 group-hover:text-white transition-colors">Authenticate to Access</span>
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 function LoadingScreen() {
   return (
@@ -313,7 +274,7 @@ export default function App() {
         {loading ? (
           <LoadingScreen key="loading" />
         ) : !user ? (
-          <LoginScreen key="login" onLogin={login} />
+          <LandingPage key="landing" onLogin={login} />
         ) : (
           <ChatInterface key="chat" logout={logout} user={user} />
         )}
