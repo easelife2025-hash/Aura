@@ -1,17 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-const firebaseConfig = {
-  apiKey: "AIzaSyBgrCccmCYUXyXvbFhaF5NocfnuWC_LCa4",
-  authDomain: "aura-84170.firebaseapp.com",
-  projectId: "aura-84170",
-  storageBucket: "aura-84170.firebasestorage.app",
-  messagingSenderId: "441749708484",
-  appId: "1:441749708484:web:0e5c1999e1747b90acf391",
-};
+import config from '../firebase-applet-config.json';
 
-export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const app = initializeApp(config);
+export const db = getFirestore(app, config.firestoreDatabaseId || '(default)');
 export const auth = getAuth(app);
 
 export enum OperationType {

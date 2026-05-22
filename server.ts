@@ -43,9 +43,15 @@ async function startServer() {
           prompt = `Previous relevant context:\n${historyContext}\n\nNew user message:\n${message}`;
       }
 
-      const response = await chat.sendMessage({ message: prompt });
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Transfer-Encoding', 'chunked');
+
+      const responseStream = await chat.sendMessageStream({ message: prompt });
       
-      res.json({ text: response.text });
+      for await (const chunk of responseStream) {
+        res.write(chunk.text);
+      }
+      res.end();
     } catch (error: any) {
       console.error("AI Error (server.ts):", error);
       res.status(500).json({ error: error.message || "Failed to process request." });

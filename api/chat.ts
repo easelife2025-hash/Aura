@@ -50,9 +50,17 @@ export default async function handler(req: any, res: any) {
         prompt = `Previous relevant context:\n${historyContext}\n\nNew user message:\n${message}`;
     }
 
-    const response = await chat.sendMessage({ message: prompt });
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const responseStream = await chat.sendMessageStream({ message: prompt });
     
-    return res.status(200).json({ text: response.text });
+    for await (const chunk of responseStream) {
+      if (res.write) {
+        res.write(chunk.text);
+      }
+    }
+    return res.end ? res.end() : res.status(200).send();
   } catch (error: any) {
     console.error("AI API Error (api/chat.ts):", error);
     return res.status(500).json({ error: error.message || "Failed to process request." });

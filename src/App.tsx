@@ -31,6 +31,7 @@ function LoadingScreen() {
 function Workspace({ logout, user }: { logout: () => void, user: any }) {
   const [currentView, setCurrentView] = useState<'chat' | 'dashboard' | 'voice'>('dashboard');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [streamingMessage, setStreamingMessage] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [mood, setMood] = useState<'neutral' | 'thinking' | 'active'>('neutral');
@@ -87,7 +88,7 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
       console.log("Sending chat payload to backend...");
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      // Increase timeout for streaming
       
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -98,40 +99,48 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
         }),
         signal: controller.signal
       });
-      
-      clearTimeout(timeoutId);
 
       console.log(`Backend responded with status: ${res.status}`);
       
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-         const textError = await res.text();
-         console.error("Non-JSON Response received:", textError.substring(0, 250));
-         throw new Error(`API returned invalid format (Status ${res.status}). Expected JSON.`);
-      }
-
-      const data = await res.json();
       if (!res.ok) {
-         throw new Error(data.error || `Server error: ${res.status}`);
+         let errorText = await res.text();
+         throw new Error(`Server error ${res.status}: ${errorText}`);
       }
-      if (data.error) throw new Error(data.error);
+      
+      if (!res.body) throw new Error("No response body received for streaming.");
+
+      setMood('active');
+      setStreamingMessage('');
+      
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullResponse += chunk;
+        setStreamingMessage(fullResponse);
+      }
 
       await addDoc(collection(db, `users/${user.uid}/messages`), {
         role: 'assistant',
-        content: data.text,
+        content: fullResponse,
         timestamp: Date.now(),
         ownerId: user.uid
       });
-      setMood('active');
+      setStreamingMessage(null);
       setTimeout(() => setMood('neutral'), 3000);
     } catch (error: any) {
       console.error("Chat Error Context:", error);
       await addDoc(collection(db, `users/${user.uid}/messages`), {
         role: 'assistant',
-        content: `⚠️ Error: ${error.message || "Connection interrupted"}. Please ensure your Vercel GEMINI_API_KEY is correct.`,
+        content: `⚠️ Error: ${error.message || "Connection interrupted"}. Please ensure backend is running.`,
         timestamp: Date.now(),
         ownerId: user.uid
       });
+      setStreamingMessage(null);
       setMood('neutral');
     } finally {
       setIsTyping(false);
@@ -361,8 +370,24 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
                 )}
               </motion.div>
             ))}
+
+            {streamingMessage !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex w-full gap-4 sm:gap-6 justify-start"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-white/10 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                </div>
+                
+                <div className="max-w-[85%] sm:max-w-[75%] rounded-3xl px-6 py-4 shadow-xl text-[15px] leading-relaxed bg-black/40 backdrop-blur-md border border-white/10 text-slate-200 rounded-tl-sm pointer-events-auto prose prose-invert prose-p:leading-relaxed max-w-none prose-a:text-cyan-400 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-headings:text-white">
+                  <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                </div>
+              </motion.div>
+            )}
             
-            {isTyping && (
+            {isTyping && streamingMessage === null && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
