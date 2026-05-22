@@ -9,6 +9,7 @@ import { useAuth } from './hooks/useAuth';
 import ParticleBackground from './components/ParticleBackground';
 import LandingPage from './components/landing/LandingPage';
 import CommandCenter from './components/dashboard/CommandCenter';
+import VoiceAssistant from './components/voice/VoiceAssistant';
 import { cn } from './utils';
 import { Message } from './types';
 
@@ -28,7 +29,7 @@ function LoadingScreen() {
 }
 
 function Workspace({ logout, user }: { logout: () => void, user: any }) {
-  const [currentView, setCurrentView] = useState<'chat' | 'dashboard'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'dashboard' | 'voice'>('chat');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -225,6 +226,16 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
             <Activity className={cn("w-4 h-4", currentView === 'dashboard' ? "text-cyan-400" : "text-slate-500")} />
             Command Center
           </button>
+          <button 
+            onClick={() => setCurrentView('voice')}
+            className={cn(
+               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
+               currentView === 'voice' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
+            )}
+          >
+            <Mic className={cn("w-4 h-4", currentView === 'voice' ? "text-emerald-400" : "text-slate-500")} />
+            Vocal Interface
+          </button>
         </nav>
 
         <div className="mb-8 flex-1">
@@ -412,8 +423,16 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
           </div>
         </div>
         </>
-        ) : (
+        ) : currentView === 'dashboard' ? (
           <CommandCenter user={user} />
+        ) : (
+          <VoiceAssistant 
+             user={user} 
+             messages={messages} 
+             onClose={() => setCurrentView('chat')} 
+             isTyping={isTyping}
+             sendMessage={async (text) => { await handleSubmit(undefined, text) }}
+          />
         )}
       </main>
     </div>
