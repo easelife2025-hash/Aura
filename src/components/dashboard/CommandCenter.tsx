@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Task, Habit } from '../../types';
-import { CheckCircle, Circle, Plus, Zap, TrendingUp, Calendar as CalendarIcon, Flame, BrainCircuit, Activity } from 'lucide-react';
+import { CheckCircle, Circle, Plus, Zap, TrendingUp, Calendar as CalendarIcon, Flame, BrainCircuit, Activity, Bot } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, isToday, isYesterday, startOfWeek, eachDayOfInterval } from 'date-fns';
 
@@ -94,12 +94,16 @@ export default function CommandCenter({ user }: { user: any }) {
 
   const generatePlan = async () => {
     setIsGeneratingPlan(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
        const res = await fetch('/api/chat', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ message: "Generate a strategic daily plan based on optimal productivity. Give me a concise schedule and focus priorities. Format plainly using simple markdown." })
+         body: JSON.stringify({ message: "Generate a strategic daily plan based on optimal productivity. Give me a concise schedule and focus priorities. Format plainly using simple markdown." }),
+         signal: controller.signal
        });
+       clearTimeout(timeoutId);
        const data = await res.json();
        setDailyPlan(data.text);
     } catch(err) {

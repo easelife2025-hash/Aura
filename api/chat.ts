@@ -19,7 +19,14 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { message, historyContext } = req.body;
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch(e) {}
+    }
+    
+    const { message, historyContext } = body || {};
     
     if (!process.env.GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY missing");

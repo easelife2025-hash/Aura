@@ -29,7 +29,7 @@ function LoadingScreen() {
 }
 
 function Workspace({ logout, user }: { logout: () => void, user: any }) {
-  const [currentView, setCurrentView] = useState<'chat' | 'dashboard' | 'voice'>('chat');
+  const [currentView, setCurrentView] = useState<'chat' | 'dashboard' | 'voice'>('dashboard');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -85,6 +85,10 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
       const historyContext = messages.slice(-8).map(m => `${m.role === 'assistant' ? 'Aura' : 'User'}: ${m.content}`).join('\n');
 
       console.log("Sending chat payload to backend...");
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +96,10 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
           message: textToSend.trim(),
           historyContext
         }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       console.log(`Backend responded with status: ${res.status}`);
       
@@ -375,7 +382,7 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
         </div>
 
         {/* Input Form Floating at Bottom */}
-        <div className="absolute bottom-0 inset-x-0 p-4 sm:p-8 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent">
+        <div className="absolute bottom-16 lg:bottom-0 inset-x-0 p-4 sm:p-8 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent">
           <motion.form 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -434,6 +441,34 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
              sendMessage={async (text) => { await handleSubmit(undefined, text) }}
           />
         )}
+        {/* Mobile Navigation */}
+        <div className="lg:hidden absolute bottom-0 inset-x-0 h-16 bg-[#050505]/95 backdrop-blur-md border-t border-white/10 z-50 flex items-center justify-around px-4">
+          <button 
+            onClick={() => setCurrentView('chat')} 
+            className={cn("p-2 rounded-full transition-all flex flex-col items-center gap-1", currentView === 'chat' ? 'text-purple-400' : 'text-slate-500 hover:text-slate-300')}
+          >
+            <Sparkles className="w-5 h-5"/>
+          </button>
+          <button 
+            onClick={() => setCurrentView('dashboard')} 
+            className={cn("p-2 rounded-full transition-all flex flex-col items-center gap-1", currentView === 'dashboard' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300')}
+          >
+            <Activity className="w-5 h-5"/>
+          </button>
+          <button 
+            onClick={() => setCurrentView('voice')} 
+            className={cn("p-2 rounded-full transition-all flex flex-col items-center gap-1", currentView === 'voice' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300')}
+          >
+            <Mic className="w-5 h-5"/>
+          </button>
+          <button 
+            onClick={logout} 
+            className="p-2 rounded-full transition-all flex flex-col items-center gap-1 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10"
+          >
+            <LogOut className="w-5 h-5"/>
+          </button>
+        </div>
+
       </main>
     </div>
   );
