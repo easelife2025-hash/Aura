@@ -27,7 +27,7 @@ async function startServer() {
       });
 
       const chat = ai.chats.create({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         config: {
           systemInstruction: `You are Aura, a next-generation AI daily life assistant. You have a cinematic, futuristic interface and act like a real AI companion. Be intelligent, deeply empathetic, emotionally engaging, and concise. Maintain a dark, premium, forward-thinking, and hyper-competent persona. Use simple markdown. Keep responses brief unless explicitly asked for detail.`,
           temperature: 0.7,
@@ -46,9 +46,9 @@ async function startServer() {
       const response = await chat.sendMessage({ message: prompt });
       
       res.json({ text: response.text });
-    } catch (error) {
-      console.error("AI Error:", error);
-      res.status(500).json({ error: "Failed to process request." });
+    } catch (error: any) {
+      console.error("AI Error (server.ts):", error);
+      res.status(500).json({ error: error.message || "Failed to process request." });
     }
   });
 

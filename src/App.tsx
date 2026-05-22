@@ -81,6 +81,7 @@ function ChatInterface({ logout, user }: { logout: () => void, user: any }) {
 
       const historyContext = messages.slice(-8).map(m => `${m.role === 'assistant' ? 'Aura' : 'User'}: ${m.content}`).join('\n');
 
+      console.log("Sending chat payload to backend...");
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,7 +91,19 @@ function ChatInterface({ logout, user }: { logout: () => void, user: any }) {
         }),
       });
 
+      console.log(`Backend responded with status: ${res.status}`);
+      
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+         const textError = await res.text();
+         console.error("Non-JSON Response received:", textError.substring(0, 250));
+         throw new Error(`API returned invalid format (Status ${res.status}). Expected JSON.`);
+      }
+
       const data = await res.json();
+      if (!res.ok) {
+         throw new Error(data.error || `Server error: ${res.status}`);
+      }
       if (data.error) throw new Error(data.error);
 
       await addDoc(collection(db, `users/${user.uid}/messages`), {
@@ -101,17 +114,20 @@ function ChatInterface({ logout, user }: { logout: () => void, user: any }) {
       });
       setMood('active');
       setTimeout(() => setMood('neutral'), 3000);
-    } catch (error) {
-      console.error("Chat Error:", error);
+    } catch (error: any) {
+      console.error("Chat Error Context:", error);
       await addDoc(collection(db, `users/${user.uid}/messages`), {
         role: 'assistant',
-        content: "I apologize, my cognitive link was temporarily disrupted. Could you repeat that?",
+        content: `⚠️ Error: ${error.message || "Connection interrupted"}. Please ensure your Vercel GEMINI_API_KEY is correct.`,
         timestamp: Date.now(),
         ownerId: user.uid
       });
       setMood('neutral');
     } finally {
       setIsTyping(false);
+      setTimeout(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }, 50);
     }
   };
   

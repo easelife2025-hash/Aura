@@ -1,6 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req: any, res: any) {
+  // CORS Support
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -22,7 +31,7 @@ export default async function handler(req: any, res: any) {
     });
 
     const chat = ai.chats.create({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction: `You are Aura, a next-generation AI daily life assistant. You have a cinematic, futuristic interface and act like a real AI companion. Be intelligent, deeply empathetic, emotionally engaging, and concise. Maintain a dark, premium, forward-thinking, and hyper-competent persona. Use simple markdown. Keep responses brief unless explicitly asked for detail.`,
         temperature: 0.7,
@@ -37,8 +46,8 @@ export default async function handler(req: any, res: any) {
     const response = await chat.sendMessage({ message: prompt });
     
     return res.status(200).json({ text: response.text });
-  } catch (error) {
-    console.error("AI Error:", error);
-    return res.status(500).json({ error: "Failed to process request." });
+  } catch (error: any) {
+    console.error("AI API Error (api/chat.ts):", error);
+    return res.status(500).json({ error: error.message || "Failed to process request." });
   }
 }
