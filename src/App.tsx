@@ -104,6 +104,20 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
       
       if (!res.ok) {
          let errorText = await res.text();
+         try {
+           const parsed = JSON.parse(errorText);
+           if (parsed.error) {
+             if (typeof parsed.error === 'object' && parsed.error.message) {
+               errorText = parsed.error.message;
+             } else {
+               errorText = String(parsed.error);
+             }
+           }
+         } catch(e) {}
+         
+         if (res.status === 429 || errorText.includes("429") || errorText.includes("RESOURCE_EXHAUSTED") || errorText.includes("quota")) {
+           throw new Error("API Quota Exceeded: You have reached the limits of the Gemini API Free Tier. Please wait for the quota to reset, or upgrade your billing plan in Google AI Studio.");
+         }
          throw new Error(`Server error ${res.status}: ${errorText}`);
       }
       
@@ -124,23 +138,36 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
         setStreamingMessage(fullResponse);
       }
 
-      await addDoc(collection(db, `users/${user.uid}/messages`), {
-        role: 'assistant',
-        content: fullResponse,
-        timestamp: Date.now(),
-        ownerId: user.uid
-      });
+      try {
+        await addDoc(collection(db, `users/${user.uid}/messages`), {
+          role: 'assistant',
+          content: fullResponse,
+          timestamp: Date.now(),
+          ownerId: user.uid
+        });
+      } catch (dbErr) {
+        console.error("Failed to save assistant message:", dbErr);
+      }
       setStreamingMessage(null);
       setTimeout(() => setMood('neutral'), 3000);
     } catch (error: any) {
       console.error("Chat Error Context:", error);
-      await addDoc(collection(db, `users/${user.uid}/messages`), {
-        role: 'assistant',
-        content: `⚠️ Error: ${error.message || "Connection interrupted"}. Please ensure backend is running.`,
-        timestamp: Date.now(),
-        ownerId: user.uid
-      });
-      setStreamingMessage(null);
+      const errorMessage = `⚠️ Error: ${error.message || "Connection interrupted"}.`;
+      setStreamingMessage(errorMessage);
+      
+      try {
+        await addDoc(collection(db, `users/${user.uid}/messages`), {
+          role: 'assistant',
+          content: errorMessage,
+          timestamp: Date.now(),
+          ownerId: user.uid
+        });
+      } catch (dbErr: any) {
+        console.error("Failed to log error to Firestore:", dbErr);
+        // Alert if the database write failed
+        alert("Action failed. Your Firestore Security Rules may be blocking read/write!");
+      }
+      setTimeout(() => setStreamingMessage(null), 8000); // clear after 8s
       setMood('neutral');
     } finally {
       setIsTyping(false);
