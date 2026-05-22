@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Send, Mic, Settings, User as UserIcon, LogOut, Loader2, Bot, LayoutDashboard, Calendar, MessageSquare } from 'lucide-react';
+import { Sparkles, Send, Mic, Settings, User as UserIcon, LogOut, Loader2, Bot, LayoutDashboard, Calendar, MessageSquare, Activity } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -8,6 +8,7 @@ import { db } from './firebase';
 import { useAuth } from './hooks/useAuth';
 import ParticleBackground from './components/ParticleBackground';
 import LandingPage from './components/landing/LandingPage';
+import CommandCenter from './components/dashboard/CommandCenter';
 import { cn } from './utils';
 import { Message } from './types';
 
@@ -26,7 +27,8 @@ function LoadingScreen() {
   );
 }
 
-function ChatInterface({ logout, user }: { logout: () => void, user: any }) {
+function Workspace({ logout, user }: { logout: () => void, user: any }) {
+  const [currentView, setCurrentView] = useState<'chat' | 'dashboard'>('chat');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -202,6 +204,29 @@ function ChatInterface({ logout, user }: { logout: () => void, user: any }) {
           </div>
         </div>
         
+        <nav className="mb-8 space-y-2">
+          <button 
+            onClick={() => setCurrentView('chat')}
+            className={cn(
+               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
+               currentView === 'chat' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
+            )}
+          >
+            <Sparkles className={cn("w-4 h-4", currentView === 'chat' ? "text-purple-400" : "text-slate-500")} />
+            Neural Link
+          </button>
+          <button 
+            onClick={() => setCurrentView('dashboard')}
+            className={cn(
+               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
+               currentView === 'dashboard' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
+            )}
+          >
+            <Activity className={cn("w-4 h-4", currentView === 'dashboard' ? "text-cyan-400" : "text-slate-500")} />
+            Command Center
+          </button>
+        </nav>
+
         <div className="mb-8 flex-1">
           <h3 className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-4">Quick Directives</h3>
           <div className="space-y-2">
@@ -236,27 +261,29 @@ function ChatInterface({ logout, user }: { logout: () => void, user: any }) {
         </div>
       </motion.aside>
 
-      {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col relative z-10 w-full lg:max-w-[calc(100vw-20rem)]">
-         {/* Dynamic Header Orb */}
-         <header className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20 flex justify-center pt-6">
-            <motion.div 
-               animate={{ 
-                 scale: mood === 'thinking' ? [1, 1.2, 1] : mood === 'active' ? [1, 1.1, 1] : 1,
-                 opacity: mood === 'neutral' ? 0.5 : 1
-               }}
-               transition={{ duration: mood === 'thinking' ? 1.5 : 0.5, repeat: mood === 'thinking' ? Infinity : 0 }}
-               className={`w-16 h-16 rounded-full blur-[20px] transition-colors duration-1000 ${
-                 mood === 'thinking' ? 'bg-cyan-500/50' : mood === 'active' ? 'bg-purple-500/50' : 'bg-purple-900/30'
-               }`}
-            />
-         </header>
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col relative z-10 w-full lg:max-w-[calc(100vw-20rem)] overflow-hidden">
+         {currentView === 'chat' ? (
+           <>
+             {/* Dynamic Header Orb */}
+             <header className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20 flex justify-center pt-6">
+                <motion.div 
+                   animate={{ 
+                     scale: mood === 'thinking' ? [1, 1.2, 1] : mood === 'active' ? [1, 1.1, 1] : 1,
+                     opacity: mood === 'neutral' ? 0.5 : 1
+                   }}
+                   transition={{ duration: mood === 'thinking' ? 1.5 : 0.5, repeat: mood === 'thinking' ? Infinity : 0 }}
+                   className={`w-16 h-16 rounded-full blur-[20px] transition-colors duration-1000 ${
+                     mood === 'thinking' ? 'bg-cyan-500/50' : mood === 'active' ? 'bg-purple-500/50' : 'bg-purple-900/30'
+                   }`}
+                />
+             </header>
 
-         {/* Chat Messages */}
-         <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 sm:px-8 pt-24 pb-32 space-y-8 scroll-smooth"
-        >
+             {/* Chat Messages */}
+             <div 
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto px-4 sm:px-8 pt-24 pb-32 space-y-8 scroll-smooth"
+            >
           <AnimatePresence initial={false}>
             {messages.length === 0 && !isTyping && (
               <motion.div 
@@ -384,7 +411,10 @@ function ChatInterface({ logout, user }: { logout: () => void, user: any }) {
             AI Assistant responses may contain inaccuracies. Verify critical information.
           </div>
         </div>
-
+        </>
+        ) : (
+          <CommandCenter user={user} />
+        )}
       </main>
     </div>
   );
@@ -402,7 +432,7 @@ export default function App() {
         ) : !user ? (
           <LandingPage key="landing" onLogin={login} />
         ) : (
-          <ChatInterface key="chat" logout={logout} user={user} />
+          <Workspace key="chat" logout={logout} user={user} />
         )}
       </AnimatePresence>
     </>

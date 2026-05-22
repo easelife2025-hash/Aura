@@ -32,15 +32,16 @@ service cloud.firestore {
 
     match /users/{userId}/messages/{messageId} {
       allow read, list: if isSignedIn() && userId == request.auth.uid;
-      
-      allow create: if isSignedIn() && 
-                       isValidId(userId) && 
-                       userId == request.auth.uid && 
-                       isValidId(messageId) && 
-                       isValidMessage(incoming());
-                       
-      // Messages are immutable once created (assistant logs are append-only)
+      allow create: if isSignedIn() && isValidId(userId) && userId == request.auth.uid && isValidId(messageId) && isValidMessage(incoming());
       allow update, delete: if false;
+    }
+
+    match /users/{userId}/tasks/{taskId} {
+      allow read, write: if isSignedIn() && userId == request.auth.uid;
+    }
+
+    match /users/{userId}/habits/{habitId} {
+      allow read, write: if isSignedIn() && userId == request.auth.uid;
     }
   }
 }
