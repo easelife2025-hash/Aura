@@ -77,7 +77,19 @@ export default function VoiceAssistant({
         return;
       }
       
-      const utterance = new SpeechSynthesisUtterance(text);
+      const cleanText = text
+        .replace(/>_\*\*[A-Za-z]+\*\*/g, '')
+        .replace(/>_\s?/g, '')
+        .replace(/>\s?/g, '')
+        .replace(/[*_#`~>]/g, '')
+        .trim();
+        
+      if (!cleanText) {
+         resolve();
+         return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       
       // Select the best male voice available
       const voices = window.speechSynthesis.getVoices();
