@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Send, Mic, Settings, User as UserIcon, LogOut, Loader2, Bot, LayoutDashboard, Calendar, MessageSquare, Activity } from 'lucide-react';
+import { Sparkles, Send, Mic, Settings, User as UserIcon, LogOut, Loader2, Bot, LayoutDashboard, Calendar, MessageSquare, Activity, Menu, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -38,6 +38,7 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [isListening, setIsListening] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -229,94 +230,18 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
   return (
     <div className="relative z-10 flex h-[100dvh] w-full overflow-hidden bg-[#050505]/80">
       
-      {/* Sidebar Desktop */}
-      <motion.aside 
-        initial={{ x: -50, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className="hidden lg:flex flex-col w-80 border-r border-white/5 p-6 glass-panel rounded-none relative z-20"
-      >
-         <div className="flex items-center gap-3 mb-10">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-white/10">
-            <Bot className="w-5 h-5 text-purple-400" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-white tracking-wide text-lg">Aura Workspace</h2>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-mono text-emerald-400/80">ONLINE • SECURE</span>
-            </div>
-          </div>
-        </div>
-        
-        <nav className="mb-8 space-y-2">
-          <button 
-            onClick={() => setCurrentView('chat')}
-            className={cn(
-               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
-               currentView === 'chat' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
-            )}
-          >
-            <Sparkles className={cn("w-4 h-4", currentView === 'chat' ? "text-purple-400" : "text-slate-500")} />
-            Neural Link
-          </button>
-          <button 
-            onClick={() => setCurrentView('dashboard')}
-            className={cn(
-               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
-               currentView === 'dashboard' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
-            )}
-          >
-            <Activity className={cn("w-4 h-4", currentView === 'dashboard' ? "text-cyan-400" : "text-slate-500")} />
-            Command Center
-          </button>
-          <button 
-            onClick={() => setCurrentView('voice')}
-            className={cn(
-               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
-               currentView === 'voice' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
-            )}
-          >
-            <Mic className={cn("w-4 h-4", currentView === 'voice' ? "text-emerald-400" : "text-slate-500")} />
-            Vocal Interface
-          </button>
-        </nav>
-
-        <div className="mb-8 flex-1">
-          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-4">Quick Directives</h3>
-          <div className="space-y-2">
-            {quickActions.map((action, i) => (
-               <button 
-                 key={i} 
-                 onClick={() => handleSubmit(undefined, action.label)}
-                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all text-slate-300 hover:text-white"
-               >
-                 <action.icon className="w-4 h-4 text-purple-400" />
-                 <span className="text-sm">{action.label}</span>
-               </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-auto pt-6 border-t border-white/10">
-           <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden">
-                    {user.photoURL ? <img src={user.photoURL} alt="User" /> : <UserIcon className="w-5 h-5 text-slate-400" />}
-                 </div>
-                 <div className="flex flex-col">
-                   <span className="text-sm font-medium text-white truncate max-w-[120px]">{user.displayName || "Operator"}</span>
-                   <span className="text-xs text-slate-500">Connected</span>
-                 </div>
-              </div>
-              <button onClick={logout} className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-full transition-all">
-                 <LogOut className="w-4 h-4" />
-              </button>
-           </div>
-        </div>
-      </motion.aside>
+      {/* Floating Top-Left Menu Button */}
+      <div className="fixed top-6 left-6 z-50">
+         <button 
+           onClick={() => setMobileMenuOpen(true)}
+           className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-all shadow-lg hover:shadow-cyan-500/20"
+         >
+            <Menu className="w-5 h-5" />
+         </button>
+      </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative z-10 w-full lg:max-w-[calc(100vw-20rem)] overflow-hidden">
+      <main className="flex-1 flex flex-col relative z-10 w-full h-[100dvh] overflow-hidden">
          {currentView === 'chat' ? (
            <>
              {/* Dynamic Header Orb */}
@@ -493,33 +418,107 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
              sendMessage={async (text) => { await handleSubmit(undefined, text) }}
           />
         )}
-        {/* Mobile Navigation */}
-        <div className="lg:hidden absolute bottom-0 inset-x-0 h-16 bg-[#050505]/95 backdrop-blur-md border-t border-white/10 z-50 flex items-center justify-around px-4">
-          <button 
-            onClick={() => setCurrentView('chat')} 
-            className={cn("p-2 rounded-full transition-all flex flex-col items-center gap-1", currentView === 'chat' ? 'text-purple-400' : 'text-slate-500 hover:text-slate-300')}
-          >
-            <Sparkles className="w-5 h-5"/>
-          </button>
-          <button 
-            onClick={() => setCurrentView('dashboard')} 
-            className={cn("p-2 rounded-full transition-all flex flex-col items-center gap-1", currentView === 'dashboard' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300')}
-          >
-            <Activity className="w-5 h-5"/>
-          </button>
-          <button 
-            onClick={() => setCurrentView('voice')} 
-            className={cn("p-2 rounded-full transition-all flex flex-col items-center gap-1", currentView === 'voice' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300')}
-          >
-            <Mic className="w-5 h-5"/>
-          </button>
-          <button 
-            onClick={logout} 
-            className="p-2 rounded-full transition-all flex flex-col items-center gap-1 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10"
-          >
-            <LogOut className="w-5 h-5"/>
-          </button>
-        </div>
+        {/* Full-screen Drawer */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-start"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <motion.div 
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-80 h-full bg-[#0a0a0a] border-r border-white/10 flex flex-col p-6 shadow-2xl overflow-y-auto"
+              >
+                <div className="flex justify-between items-center mb-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-white/10">
+                      <Bot className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-white tracking-wide text-lg">Aura Features</h2>
+                    </div>
+                  </div>
+                  <button onClick={() => setMobileMenuOpen(false)} className="p-2 -mr-2 text-slate-400 hover:text-white">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-4">Core Modules</h3>
+                  <nav className="space-y-2">
+                    <button 
+                      onClick={() => { setCurrentView('chat'); setMobileMenuOpen(false); }}
+                      className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
+                          currentView === 'chat' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
+                      )}
+                    >
+                      <Sparkles className={cn("w-4 h-4", currentView === 'chat' ? "text-purple-400" : "text-slate-500")} />
+                      Neural Link (Chat)
+                    </button>
+                    <button 
+                      onClick={() => { setCurrentView('dashboard'); setMobileMenuOpen(false); }}
+                      className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
+                          currentView === 'dashboard' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
+                      )}
+                    >
+                      <Activity className={cn("w-4 h-4", currentView === 'dashboard' ? "text-cyan-400" : "text-slate-500")} />
+                      Command Center
+                    </button>
+                    <button 
+                      onClick={() => { setCurrentView('voice'); setMobileMenuOpen(false); }}
+                      className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
+                          currentView === 'voice' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
+                      )}
+                    >
+                      <Mic className={cn("w-4 h-4", currentView === 'voice' ? "text-emerald-400" : "text-slate-500")} />
+                      Vocal Interface
+                    </button>
+                  </nav>
+                </div>
+
+                <div className="mb-8 flex-1">
+                  <h3 className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-4">Quick Directives</h3>
+                  <div className="space-y-2">
+                    {quickActions.map((action, i) => (
+                        <button 
+                          key={i} 
+                          onClick={() => { handleSubmit(undefined, action.label); setMobileMenuOpen(false); setCurrentView('chat'); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 transition-all text-slate-300 hover:text-white"
+                        >
+                          <action.icon className="w-4 h-4 text-purple-400" />
+                          <span className="text-sm">{action.label}</span>
+                        </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-6 border-t border-white/10 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden">
+                        {user.photoURL ? <img src={user.photoURL} alt="User" /> : <UserIcon className="w-5 h-5 text-slate-400" />}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-white truncate max-w-[120px]">{user.displayName || "Operator"}</span>
+                    </div>
+                  </div>
+                  <button onClick={logout} className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-full transition-all">
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </main>
     </div>

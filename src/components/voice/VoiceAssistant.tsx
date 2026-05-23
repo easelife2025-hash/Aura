@@ -62,68 +62,58 @@ export default function VoiceAssistant({
       if (recognitionRef.current) {
          recognitionRef.current.stop();
       }
-      if (audioRef.current) {
-         audioRef.current.pause();
-         audioRef.current = null;
+      if (window.speechSynthesis) {
+         window.speechSynthesis.cancel();
       }
     };
   }, []);
 
-  const playTTS = async (text: string) => {
+  const playTTS = (text: string) => {
     setErrorMsg(null);
-    try {
-      const response = await fetch("/api/tts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ text })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(errorData.error || `HTTP error ${response.status}`);
+    return new Promise<void>((resolve) => {
+      if (!window.speechSynthesis) {
+        setErrorMsg("Your browser does not support Speech Synthesis API.");
+        resolve();
+        return;
       }
       
-      const arrayBuffer = await response.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(blob);
+      const utterance = new SpeechSynthesisUtterance(text);
       
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      // Select the best male voice available
+      const voices = window.speechSynthesis.getVoices();
+      let bestVoice = voices.find(v => v.name.includes('Google UK English Male')) || 
+                      voices.find(v => v.name.includes('Google US English Male') || v.name.includes('Google') && v.name.includes('Male')) ||
+                      voices.find(v => (v.name.includes('David') || v.name.includes('Mark') || v.name.includes('Arthur'))) ||
+                      voices.find(v => v.name.toLowerCase().includes('male')) ||
+                      voices.find(v => v.lang.startsWith('en')) || 
+                      voices[0];
+                      
+      if (bestVoice) utterance.voice = bestVoice;
+      utterance.rate = 0.95; // Slightly slower for a calmer tone
+      utterance.pitch = 0.8; // Deeper pitch for male characteristic
       
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      
-      audio.onplay = () => setIsSpeaking(true);
-      audio.onended = () => {
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => {
         setIsSpeaking(false);
-        URL.revokeObjectURL(url);
         if (sessionActive && recognitionRef.current) {
           try { recognitionRef.current.start(); } catch(e) {}
         }
+        resolve();
       };
-      audio.onerror = () => {
+      utterance.onerror = (e) => {
+        console.error("Speech synthesis error", e);
         setIsSpeaking(false);
-        URL.revokeObjectURL(url);
+        resolve();
       };
       
-      await audio.play();
-    } catch (err: any) {
-      console.error("TTS Failed:", err);
-      if (err.message.includes("ElevenLabs API key is missing") || err.message.includes("unauthorized")) {
-         setErrorMsg("ElevenLabs API Key required. Please configure it in settings to unlock premium voice.");
-      } else {
-         setErrorMsg(`Voice Error: ${err.message}`);
-      }
-      setIsSpeaking(false);
-    }
+      window.speechSynthesis.cancel(); // Stop any pending speech
+      window.speechSynthesis.speak(utterance);
+    });
   }
 
   useEffect(() => {
     if (!sessionActive) {
-      if (audioRef.current) audioRef.current.pause();
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
       setIsSpeaking(false);
       recognitionRef.current?.stop();
       return;
