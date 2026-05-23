@@ -12,6 +12,49 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Text-to-Speech proxy for ElevenLabs
+  app.post("/api/tts", async (req, res) => {
+    try {
+      const { text } = req.body;
+      const apiKey = process.env.ELEVENLABS_API_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ error: "ElevenLabs API key is missing. Please add ELEVENLABS_API_KEY in the environment variables." });
+      }
+
+      // "Adam" - Deep, confident, professional male voice
+      const voiceId = "pNInz6obpgDQGcFmaJcg"; 
+      
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+        method: "POST",
+        headers: {
+          "Accept": "audio/mpeg",
+          "xi-api-key": apiKey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_monolingual_v1",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`ElevenLabs Error: ${errText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.send(Buffer.from(arrayBuffer));
+    } catch (error: any) {
+      console.error("TTS Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // AI Assistant endpoint
   app.post("/api/chat", async (req, res) => {
     try {

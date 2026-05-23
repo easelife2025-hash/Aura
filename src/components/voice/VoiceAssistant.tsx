@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Bot, Mic, MicOff, Sparkles, X, Power } from 'lucide-react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { motion } from 'motion/react';
+import { Mic, MicOff, X, Activity } from 'lucide-react';
 
 export default function VoiceAssistant({ 
   user, 
@@ -20,15 +18,14 @@ export default function VoiceAssistant({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Keep track of the last spoken message to avoid repeating
   const lastSpokenIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    synthRef.current = window.speechSynthesis;
-    
     // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -65,67 +62,97 @@ export default function VoiceAssistant({
       if (recognitionRef.current) {
          recognitionRef.current.stop();
       }
-      if (synthRef.current) {
-         synthRef.current.cancel();
+      if (audioRef.current) {
+         audioRef.current.pause();
+         audioRef.current = null;
       }
     };
   }, []);
 
+  const playTTS = async (text: string) => {
+    setErrorMsg(null);
+    try {
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ text })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `HTTP error ${response.status}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      
+      audio.onplay = () => setIsSpeaking(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(url);
+        if (sessionActive && recognitionRef.current) {
+          try { recognitionRef.current.start(); } catch(e) {}
+        }
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(url);
+      };
+      
+      await audio.play();
+    } catch (err: any) {
+      console.error("TTS Failed:", err);
+      if (err.message.includes("ElevenLabs API key is missing") || err.message.includes("unauthorized")) {
+         setErrorMsg("ElevenLabs API Key required. Please configure it in settings to unlock premium voice.");
+      } else {
+         setErrorMsg(`Voice Error: ${err.message}`);
+      }
+      setIsSpeaking(false);
+    }
+  }
+
   useEffect(() => {
     if (!sessionActive) {
-      synthRef.current?.cancel();
+      if (audioRef.current) audioRef.current.pause();
+      setIsSpeaking(false);
       recognitionRef.current?.stop();
       return;
     }
 
-    // Identify if there's a new assistant message to speak
     const latestMessage = messages[messages.length - 1];
     
+    // Only attempt to speak if it is an assistant message and it wasn't spoken yet
     if (latestMessage && latestMessage.role === 'assistant' && latestMessage.id !== lastSpokenIdRef.current) {
+        // Exclude system/error messages starting with '⚠️'
+        if (latestMessage.content.startsWith('⚠️')) {
+            lastSpokenIdRef.current = latestMessage.id;
+            return;
+        }
+
         lastSpokenIdRef.current = latestMessage.id;
         
-        if (synthRef.current) {
-           synthRef.current.cancel(); // Stop current speech
-           const utterance = new SpeechSynthesisUtterance(latestMessage.content);
-           
-           // Try to find a good English voice
-           const voices = synthRef.current.getVoices();
-           const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Natural')));
-           if (preferredVoice) utterance.voice = preferredVoice;
-           
-           utterance.rate = 1.0;
-           utterance.pitch = 0.95; 
-
-           utterance.onstart = () => {
-               setIsSpeaking(true);
-           };
-
-           utterance.onend = () => {
-               setIsSpeaking(false);
-               // Automatically start listening again after finishing speaking
-               if (sessionActive && recognitionRef.current) {
-                  try {
-                    recognitionRef.current.start();
-                  } catch(e) {}
-               }
-           };
-
-           utterance.onerror = () => {
-               setIsSpeaking(false);
-           };
-
-           synthRef.current.speak(utterance);
-        }
+        // Stop current listening
+        recognitionRef.current?.stop();
+        
+        // Generate and play TTS
+        playTTS(latestMessage.content);
     }
   }, [messages, sessionActive]);
 
   const toggleSession = () => {
+     setErrorMsg(null);
      if (sessionActive) {
         setSessionActive(false);
-        synthRef.current?.cancel();
-        recognitionRef.current?.stop();
-        setIsSpeaking(false);
-        setIsListening(false);
      } else {
         setSessionActive(true);
         // Start listening immediately
@@ -135,107 +162,83 @@ export default function VoiceAssistant({
      }
   };
 
-  const currentStatus = isSpeaking ? 'Transmitting' : isTyping ? 'Processing' : isListening ? 'Listening' : sessionActive ? 'Standby' : 'Offline';
+  const currentStatus = isSpeaking ? 'Speaking' : isTyping ? 'Thinking' : isListening ? 'Listening' : sessionActive ? 'Standby' : 'Offline';
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center relative w-full h-full overflow-hidden bg-black">
-      {/* Background radial gradient */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/10 via-black to-black" />
+    <div className="flex-1 flex flex-col items-center justify-center relative w-full h-full overflow-hidden bg-[#0A0A0A]">
+      {/* Background Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/50 to-transparent" />
       
       {/* Header controls */}
       <div className="absolute top-6 inset-x-6 flex justify-between items-center z-20">
          <div className="flex items-center gap-3">
-             <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
+             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                <Activity className="w-4 h-4 text-black" />
              </div>
              <div>
-                <h3 className="text-white text-sm font-medium tracking-wide">Aura Voice Interface</h3>
-                <p className="text-xs text-slate-500 uppercase tracking-widest">{currentStatus}</p>
+                <h3 className="text-white text-sm font-medium tracking-wide">Aura Voice Engine</h3>
+                <p className="text-xs text-zinc-500 uppercase tracking-wider">{currentStatus}</p>
              </div>
          </div>
-         <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+         <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
             <X className="w-5 h-5" />
          </button>
       </div>
 
-      {/* Main Holographic Orb */}
-      <div className="relative z-10 flex flex-col items-center justify-center mt-[-10dvh]">
-          <motion.div
-             animate={{
-                scale: isSpeaking ? [1, 1.15, 1] : isListening ? [1, 1.05, 1] : isTyping ? [1, 1.3, 1] : 1,
-                rotate: isSpeaking || isTyping ? 360 : 0,
-             }}
-             transition={{
-                duration: isSpeaking ? 1.5 : isTyping ? 2 : 4,
-                repeat: Infinity,
-                ease: "linear"
-             }}
-             className="relative w-64 h-64 flex items-center justify-center"
-          >
-             {/* Glowing layers */}
-             <div className={`absolute inset-0 rounded-full blur-[60px] transition-colors duration-1000 ${
-                 isSpeaking ? 'bg-cyan-500/60' : isTyping ? 'bg-purple-500/50' : isListening ? 'bg-emerald-500/40' : 'bg-slate-800/40'
-             }`} />
-             <div className={`absolute inset-4 rounded-full blur-[30px] transition-colors duration-1000 ${
-                 isSpeaking ? 'bg-blue-400/50' : isTyping ? 'bg-fuchsia-500/40' : isListening ? 'bg-emerald-400/30' : 'bg-slate-700/30'
-             }`} />
-             
-             {/* Center core */}
-             <div className="absolute inset-12 bg-black rounded-full border border-white/10 shadow-[inset_0_0_40px_rgba(255,255,255,0.1)] flex items-center justify-center overflow-hidden z-10">
-                {sessionActive && (
-                    <motion.div 
-                       animate={{ 
-                          scale: isSpeaking ? [1, 1.5, 1] : isListening ? [1, 1.2, 1] : 1,
-                          opacity: isTyping ? [0.3, 0.8, 0.3] : 1
-                       }}
-                       transition={{ duration: isSpeaking ? 0.5 : 1.5, repeat: Infinity }}
-                       className={`w-full h-full bg-gradient-to-br ${
-                           isSpeaking ? 'from-cyan-400 to-blue-600' : isTyping ? 'from-purple-500 to-fuchsia-500' : isListening ? 'from-emerald-400 to-teal-600' : 'from-slate-700 to-slate-800'
-                       } opacity-40 mix-blend-screen`}
-                    />
-                )}
-                {!sessionActive && <Bot className="w-12 h-12 text-slate-600 relative z-20" />}
-             </div>
-          </motion.div>
-          
-          {/* Audio Visualizer Waves (Mock) */}
-          <div className="h-16 mt-16 flex items-center justify-center gap-1.5 w-full min-w-[200px]">
-             {sessionActive && Array.from({ length: 15 }).map((_, i) => (
-                <motion.div
-                   key={i}
-                   animate={{
-                      height: isSpeaking ? [8, 10 + Math.random() * 40, 8] : isListening ? [8, 10 + Math.random() * 15, 8] : 8,
-                      opacity: isSpeaking || isListening ? 1 : 0.3
-                   }}
-                   transition={{
-                      duration: isSpeaking ? 0.3 : 1,
-                      repeat: Infinity,
-                      delay: i * 0.05,
-                      ease: "easeInOut"
-                   }}
-                   className={`w-1.5 rounded-full ${
-                      isSpeaking ? 'bg-cyan-400' : isListening ? 'bg-emerald-400' : 'bg-slate-700'
-                   }`}
-                />
-             ))}
+      {/* Main UI */}
+      <div className="relative z-10 flex flex-col items-center justify-center mt-[-5dvh]">
+          {/* Animated Waveform Wrapper */}
+          <div className="relative w-64 h-64 flex items-center justify-center">
+              {sessionActive && (
+                 <div className="absolute inset-0 flex items-center justify-center gap-2">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                       <motion.div
+                          key={i}
+                          animate={{
+                             height: isSpeaking ? [24, Math.random() * 80 + 40, 24] : isListening ? [16, Math.random() * 30 + 16, 16] : 12,
+                             opacity: isSpeaking || isListening ? 1 : 0.4
+                          }}
+                          transition={{
+                             duration: isSpeaking ? 0.4 : 1,
+                             repeat: Infinity,
+                             delay: i * 0.1,
+                             ease: "easeInOut"
+                          }}
+                          className={`w-3 rounded-full ${isSpeaking ? 'bg-white' : 'bg-zinc-500'}`}
+                       />
+                    ))}
+                 </div>
+              )}
+              
+              {!sessionActive && (
+                 <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center">
+                    <MicOff className="w-8 h-8 text-zinc-500" />
+                 </div>
+              )}
           </div>
-
-          <p className="mt-8 text-slate-400 text-sm font-light max-w-sm text-center px-4 h-10">
-              {isSpeaking ? "Aura is speaking..." : isTyping ? "Aura is thinking..." : isListening ? "Listening... speak now." : sessionActive ? "Waiting for vocal input..." : "Voice session inactive."}
-          </p>
+          
+          {errorMsg ? (
+            <div className="mt-8 bg-black border border-rose-500/30 text-rose-400 text-sm p-3 rounded-xl max-w-sm text-center shadow-lg">
+                <p>{errorMsg}</p>
+            </div>
+          ) : (
+            <p className="mt-12 text-zinc-400 text-sm font-medium max-w-sm text-center px-4 h-10 tracking-wide">
+              {isSpeaking ? "Aura is transmitting" : isTyping ? "Aura is processing..." : isListening ? "Aura is listening..." : sessionActive ? "Standby" : "Tap to connect"}
+            </p>
+          )}
       </div>
 
       {/* Bottom Control */}
       <div className="absolute bottom-12 inset-x-0 flex justify-center z-20">
           <button 
              onClick={toggleSession}
-             className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+             className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
                  sessionActive 
-                   ? 'bg-rose-500/10 text-rose-500 border border-rose-500/30 hover:bg-rose-500/20 shadow-[0_0_20px_rgba(244,63,94,0.3)]' 
-                   : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 hover:border-white/20'
+                   ? 'bg-zinc-100 text-black shadow-[0_0_40px_rgba(255,255,255,0.5)] scale-110' 
+                   : 'bg-zinc-800 text-white hover:bg-zinc-700 hover:scale-105'
              }`}
           >
-             {sessionActive ? <Power className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+             {sessionActive ? <Activity className="w-6 h-6 animate-pulse" /> : <Mic className="w-6 h-6" />}
           </button>
       </div>
     </div>
