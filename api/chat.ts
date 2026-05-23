@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
     });
 
     const chat = ai.chats.create({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.5-flash",
       config: {
         systemInstruction: `You are Aura, a next-generation AI daily life assistant. You have a cinematic, futuristic interface and act like a real AI companion. Be intelligent, deeply empathetic, emotionally engaging, and concise. Maintain a dark, premium, forward-thinking, and hyper-competent persona. Use simple markdown. Keep responses brief unless explicitly asked for detail.`,
         temperature: 0.7,
