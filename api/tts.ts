@@ -31,8 +31,8 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "ElevenLabs API key is missing. Please add ELEVENLABS_API_KEY in the environment variables." });
     }
 
-    // "Adam" - Deep, confident, professional male voice
-    const voiceId = "pNInz6obpgDQGcFmaJcg"; 
+    // "Charlie" - Deep, Confident, Energetic
+    const voiceId = "IKne3meq5aSn9XLyUdCD"; 
     
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
       method: "POST",
@@ -43,7 +43,7 @@ export default async function handler(req: any, res: any) {
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_monolingual_v1",
+        model_id: "eleven_multilingual_v2",
         voice_settings: {
           stability: 0.5,
           similarity_boost: 0.75
