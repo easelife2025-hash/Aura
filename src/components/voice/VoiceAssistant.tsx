@@ -93,16 +93,26 @@ export default function VoiceAssistant({
       
       // Select the best male voice available
       const voices = window.speechSynthesis.getVoices();
-      let bestVoice = voices.find(v => v.name.includes('Google UK English Male')) || 
-                      voices.find(v => v.name.includes('Google US English Male') || v.name.includes('Google') && v.name.includes('Male')) ||
-                      voices.find(v => (v.name.includes('David') || v.name.includes('Mark') || v.name.includes('Arthur'))) ||
-                      voices.find(v => v.name.toLowerCase().includes('male')) ||
-                      voices.find(v => v.lang.startsWith('en')) || 
-                      voices[0];
+      let bestVoice = 
+        // Prioritize Microsoft Edge Natural Voices (Very Human-like)
+        voices.find(v => v.name.includes('Online (Natural)') && v.name.includes('Male') && v.lang.startsWith('en')) ||
+        voices.find(v => (v.name.includes('Christopher') || v.name.includes('Guy') || v.name.includes('Brian') || v.name.includes('William')) && v.name.includes('Online')) ||
+        // Prioritize Mac Premium Voices
+        voices.find(v => v.name === 'Alex' || v.name === 'Daniel' || v.name === 'Arthur' || v.name === 'Rishi') ||
+        // Fallback to Google and other male voices
+        voices.find(v => v.name.includes('Google UK English Male')) || 
+        voices.find(v => v.name.includes('Google US English Male')) ||
+        voices.find(v => v.name.includes('Google') && v.name.toLowerCase().includes('male')) ||
+        voices.find(v => v.name.toLowerCase().includes('male') && v.lang.startsWith('en')) ||
+        voices.find(v => v.lang.startsWith('en-US')) || 
+        voices[0];
                       
       if (bestVoice) utterance.voice = bestVoice;
-      utterance.rate = 0.95; // Slightly slower for a calmer tone
-      utterance.pitch = 0.8; // Deeper pitch for male characteristic
+      
+      // Keep rate and pitch close to default (1.0). Heavy modification of pitch/rate makes voices sound extremely robotic.
+      utterance.rate = 1.05; // Slightly faster for natural conversational pacing
+      // Only lower pitch slightly for standard voices, but keep at 1.0 for natural voices
+      utterance.pitch = bestVoice?.name.includes('Natural') || bestVoice?.name.includes('Online') ? 1.0 : 0.95;
       
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => {
