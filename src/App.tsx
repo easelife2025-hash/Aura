@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { db } from './firebase';
-import { useAuth } from './hooks/useAuth';
+import { useAuth, getAccessToken } from './hooks/useAuth';
 import ParticleBackground from './components/ParticleBackground';
 import LandingPage from './components/landing/LandingPage';
 import CommandCenter from './components/dashboard/CommandCenter';
@@ -90,10 +90,13 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
       
       const controller = new AbortController();
       // Increase timeout for streaming
-      
+      const token = await getAccessToken();
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+           'Content-Type': 'application/json',
+           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ 
           message: textToSend.trim(),
           historyContext

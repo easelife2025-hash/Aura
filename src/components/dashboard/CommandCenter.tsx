@@ -7,8 +7,13 @@ import { CheckCircle, Circle, Plus, Zap, TrendingUp, Calendar as CalendarIcon, F
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, isToday, isYesterday, startOfWeek, eachDayOfInterval } from 'date-fns';
 
+import { Mail } from 'lucide-react';
+import { getAccessToken } from '../../hooks/useAuth';
+
 const MOCK_ANALYTICS = [
   { name: 'Mon', score: 45 },
+//...
+
   { name: 'Tue', score: 70 },
   { name: 'Wed', score: 65 },
   { name: 'Thu', score: 85 },
@@ -16,6 +21,81 @@ const MOCK_ANALYTICS = [
   { name: 'Sat', score: 50 },
   { name: 'Sun', score: 75 },
 ];
+
+function MailWidget() {
+  const [emails, setEmails] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string|null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchMails = async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          setErr("No valid Gmail token.");
+          setLoading(false);
+          return;
+        }
+        const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=in:inbox', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error("Failed to fetch messages. Please sign out and sign in again to grant permissions.");
+        const data = await res.json();
+        const msgs = data.messages || [];
+        const fullEmails = await Promise.all(msgs.map(async (m: any) => {
+             const mRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`, {
+                 headers: { Authorization: `Bearer ${token}` }
+             });
+             const mData = await mRes.json();
+             const subjectLine = mData.payload?.headers?.find((h:any) => h.name === 'Subject')?.value || 'No Subject';
+             const fromLine = mData.payload?.headers?.find((h:any) => h.name === 'From')?.value || 'Unknown';
+             return { id: m.id, snippet: mData.snippet, subject: subjectLine, from: fromLine };
+        }));
+        if (active) {
+            setEmails(fullEmails);
+            setErr(null);
+            setLoading(false);
+        }
+      } catch (e: any) {
+        if (active) {
+          setErr(e.message);
+          setLoading(false);
+        }
+      }
+    };
+    fetchMails();
+    return () => { active = false; };
+  }, []);
+
+  return (
+    <div className="glass-panel p-6 rounded-3xl border border-white/5 flex flex-col h-[400px]">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-base font-medium text-slate-200 flex items-center gap-2">
+          <Mail className="w-4 h-4 text-rose-400" /> Recent Emails
+        </h3>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+        {loading ? (
+          <div className="h-full flex items-center justify-center text-slate-500 animate-pulse">Loading inbox...</div>
+        ) : err ? (
+          <div className="h-full flex items-center justify-center text-rose-400/80 text-sm">{err}</div>
+        ) : emails.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-slate-500">Inbox empty</div>
+        ) : (
+          emails.map(email => (
+            <div key={email.id} className="bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-transparent transition-colors">
+               <div className="font-medium text-slate-200 text-sm truncate">{email.subject}</div>
+               <div className="text-xs text-slate-400 truncate mb-1">{email.from.replace(/<.*>/, '')}</div>
+               <div className="text-xs text-slate-500 truncate" dangerouslySetInnerHTML={{ __html: email.snippet }} />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CommandCenter({ user }: { user: any }) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -291,6 +371,8 @@ export default function CommandCenter({ user }: { user: any }) {
                 </button>
               </form>
           </div>
+
+          <MailWidget />
 
         </div>
       </div>
