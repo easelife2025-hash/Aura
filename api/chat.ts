@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
     
     if (!process.env.GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY missing");
-      return res.status(500).json({ error: "API Key missing. Please check your Vercel environment variables." });
+      return res.status(500).json({ error: "Gemini API key is not configured. Please add your GEMINI_API_KEY via the Settings/Secrets panel." });
     }
     
     const ai = new GoogleGenAI({

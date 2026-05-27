@@ -60,8 +60,13 @@ async function startServer() {
     try {
       const { message, historyContext } = req.body;
       
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+         return res.status(500).json({ error: "Gemini API key is not configured. Please add your GEMINI_API_KEY via the Settings/Secrets panel." });
+      }
+
       const ai = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY,
+        apiKey,
         httpOptions: {
           headers: {
             'User-Agent': 'aistudio-build',
