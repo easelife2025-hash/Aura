@@ -4,12 +4,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-comp
 
 // 🎈 STEP 4: Replace this with your actual firebaseConfig from firebase-applet-config.json
 const firebaseConfig = {
-  projectId: "red-aura-ncf5x",
-  appId: "1:213623640947:web:c9dc64e739ceb4831b6b06",
-  apiKey: "AIzaSyAVyx4OX3AZMNnPnqrPl07fnqSwLbN3q_M",
-  authDomain: "red-aura-ncf5x.firebaseapp.com",
-  storageBucket: "red-aura-ncf5x.firebasestorage.app",
-  messagingSenderId: "213623640947"
+  projectId: "aura-84170",
+  appId: "1:441749708484:web:0e5c1999e1747b90acf391",
+  apiKey: "AIzaSyBgrCccmCYUXyXvbFhaF5NocfnuWC_LCa4",
+  authDomain: "aura-84170.firebaseapp.com",
+  storageBucket: "aura-84170.firebasestorage.app",
+  messagingSenderId: "441749708484"
 };
 
 try {
