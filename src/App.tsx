@@ -10,6 +10,7 @@ import ParticleBackground from './components/ParticleBackground';
 import LandingPage from './components/landing/LandingPage';
 import CommandCenter from './components/dashboard/CommandCenter';
 import VoiceAssistant from './components/voice/VoiceAssistant';
+import SettingsPanel from './components/settings/SettingsPanel';
 import { cn } from './utils';
 import { Message } from './types';
 
@@ -29,7 +30,7 @@ function LoadingScreen() {
 }
 
 function Workspace({ logout, user }: { logout: () => void, user: any }) {
-  const [currentView, setCurrentView] = useState<'chat' | 'dashboard' | 'voice'>('dashboard');
+  const [currentView, setCurrentView] = useState<'chat' | 'dashboard' | 'voice' | 'settings'>('dashboard');
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null);
   const [input, setInput] = useState('');
@@ -412,6 +413,8 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
         </>
         ) : currentView === 'dashboard' ? (
           <CommandCenter user={user} />
+        ) : currentView === 'settings' ? (
+          <SettingsPanel user={user} />
         ) : (
           <VoiceAssistant 
              user={user} 
@@ -485,6 +488,16 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
                     >
                       <Mic className={cn("w-4 h-4", currentView === 'voice' ? "text-emerald-400" : "text-slate-500")} />
                       Vocal Interface
+                    </button>
+                    <button 
+                      onClick={() => { setCurrentView('settings'); setMobileMenuOpen(false); }}
+                      className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm border",
+                          currentView === 'settings' ? "bg-white/10 text-white border-white/10 shadow-lg" : "bg-transparent text-slate-400 border-transparent hover:bg-white/5 hover:text-slate-300"
+                      )}
+                    >
+                      <Settings className={cn("w-4 h-4", currentView === 'settings' ? "text-rose-400" : "text-slate-500")} />
+                      System Preferences
                     </button>
                   </nav>
                 </div>

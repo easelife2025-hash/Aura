@@ -16,7 +16,7 @@
         },
         "timestamp": {
           "type": "number",
-          "description": "The time the message was created (as a numeric timestamp for simplicity or firestore timestamp)."
+          "description": "The time the message was created."
         },
         "ownerId": {
           "type": "string",
@@ -24,12 +24,79 @@
         }
       },
       "required": ["role", "content", "timestamp", "ownerId"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A user task.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the task."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "completed"],
+          "description": "Task status"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["title", "status", "createdAt"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "A user habit.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "streak": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "lastCompleted": {
+          "type": "number"
+        }
+      },
+      "required": ["title", "streak", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User settings and profile preferences.",
+      "type": "object",
+      "properties": {
+        "smartReminders": { "type": "boolean" },
+        "pushNotifications": { "type": "boolean" },
+        "personalizedRecommendations": { "type": "boolean" },
+        "dailyInsights": { "type": "boolean" },
+        "personalityMode": { "type": "string", "enum": ["professional", "friendly", "concise", "creative"] },
+        "theme": { "type": "string", "enum": ["system", "dark", "light", "cosmic"] }
+      },
+      "required": ["smartReminders", "pushNotifications", "personalizedRecommendations", "dailyInsights", "personalityMode", "theme"]
     }
   },
   "firestore": {
     "users/{userId}/messages/{messageId}": {
       "schema": "Message",
       "description": "The conversation history for a specific user."
+    },
+    "users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "The user's tasks."
+    },
+    "users/{userId}/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "The user's habits."
+    },
+    "users/{userId}/settings/{settingId}": {
+      "schema": "UserProfile",
+      "description": "User preferences"
     }
   }
 }

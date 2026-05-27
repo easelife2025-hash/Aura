@@ -1,19 +1,20 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBgrCccmCYUXyXvbFhaF5NocfnuWC_LCa4",
-  authDomain: "aura-84170.firebaseapp.com",
-  projectId: "aura-84170",
-  storageBucket: "aura-84170.firebasestorage.app",
-  messagingSenderId: "441749708484",
-  appId: "1:441749708484:web:0e5c1999e1747b90acf391",
-};
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import firebaseConfig from '../firebase-applet-config.json';
 
 export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+
+let messagingInstance: any = null;
+try {
+  messagingInstance = getMessaging(app);
+} catch (e) {
+  console.warn("Firebase Messaging not supported or failed to initialize", e);
+}
+export const messaging = messagingInstance;
 
 export enum OperationType {
   CREATE = 'create',
