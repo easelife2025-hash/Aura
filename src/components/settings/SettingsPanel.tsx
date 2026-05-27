@@ -42,6 +42,7 @@ export default function SettingsPanel({ user }: { user: any }) {
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deviceToken, setDeviceToken] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadSettings() {
@@ -85,6 +86,7 @@ export default function SettingsPanel({ user }: { user: any }) {
 
               const token = await getToken(messaging, { vapidKey });
               console.log("Notification permission granted! Token:", token);
+              setDeviceToken(token);
               // Here you would save the token to the user's document in Firestore so you can message them later
               
             } else {
@@ -158,6 +160,18 @@ export default function SettingsPanel({ user }: { user: any }) {
                    </div>
                    <Toggle checked={settings.pushNotifications} onChange={(v) => updateField('pushNotifications', v)} />
                 </div>
+                {deviceToken && (
+                   <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200 break-all space-y-2">
+                     <span className="font-bold text-purple-400 block mb-1">Your Device Token (For Testing):</span>
+                     {deviceToken}
+                     <button 
+                       onClick={() => navigator.clipboard.writeText(deviceToken)}
+                       className="block mt-2 font-medium bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg border border-purple-500/30 w-full transition-colors"
+                     >
+                        Copy Token
+                     </button>
+                   </div>
+                )}
              </div>
           </motion.div>
 
