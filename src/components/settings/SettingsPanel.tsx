@@ -215,36 +215,39 @@ export default function SettingsPanel({ user }: { user: any }) {
                        <button 
                          onClick={() => {
                            if (Notification.permission === 'granted') {
-                             navigator.serviceWorker.getRegistration().then(function(reg) {
-                               if (reg) {
-                                 reg.showNotification("Hello from Aura! 🌟", { 
-                                   body: "Your notifications are working perfectly!",
-                                   icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png", // A placeholder icon
-                                   badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
-                                   vibrate: [200, 100, 200]
-                                 });
-                               } else {
-                                 navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(newReg) {
-                                   newReg.showNotification("Hello from Aura! 🌟", { 
-                                     body: "Your notifications are working perfectly!",
-                                     icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                             alert("Perfect! Now, minimize the browser or switch to another app. The AI reminder will arrive in 5 seconds.");
+                             setTimeout(() => {
+                               navigator.serviceWorker.getRegistration().then(function(reg) {
+                                 if (reg) {
+                                   reg.showNotification("Time to stretch! 🧘", { 
+                                     body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
+                                     icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png", 
                                      badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
                                      vibrate: [200, 100, 200]
                                    });
-                                 }).catch(function(err) {
-                                   alert("Service Worker not registered: " + err.message);
-                                 });
-                               }
-                             }).catch(function(err) {
-                               alert("Service Worker error: " + err.message);
-                             });
+                                 } else {
+                                   navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(newReg) {
+                                     newReg.showNotification("Time to stretch! 🧘", { 
+                                       body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
+                                       icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                       badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                       vibrate: [200, 100, 200]
+                                     });
+                                   }).catch(function(err) {
+                                     console.error("Service Worker not registered: " + err.message);
+                                   });
+                                 }
+                               }).catch(function(err) {
+                                 console.error("Service Worker error: " + err.message);
+                               });
+                             }, 5000);
                            } else {
-                             alert("Permission not granted yet.");
+                             alert("Permission not granted yet. Please enable push notifications first.");
                            }
                          }}
                          className="flex-1 font-medium bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30 transition-colors"
                        >
-                          Test Notification
+                          Test AI Reminder
                        </button>
                      </div>
                    </div>
