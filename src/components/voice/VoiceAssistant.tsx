@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Mic, MicOff, X, Activity } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 export default function VoiceAssistant({ 
   user, 
@@ -15,6 +16,7 @@ export default function VoiceAssistant({
   isTyping: boolean,
   sendMessage: (text: string) => Promise<void>
 }) {
+  const { settings } = useSettings();
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
@@ -91,28 +93,31 @@ export default function VoiceAssistant({
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       
-      // Select the best male voice available
       const voices = window.speechSynthesis.getVoices();
-      let bestVoice = 
-        // Prioritize Microsoft Edge Natural Voices (Very Human-like)
-        voices.find(v => v.name.includes('Online (Natural)') && v.name.includes('Male') && v.lang.startsWith('en')) ||
-        voices.find(v => (v.name.includes('Christopher') || v.name.includes('Guy') || v.name.includes('Brian') || v.name.includes('William')) && v.name.includes('Online')) ||
-        // Prioritize Mac Premium Voices
-        voices.find(v => v.name === 'Alex' || v.name === 'Daniel' || v.name === 'Arthur' || v.name === 'Rishi') ||
-        // Fallback to Google and other male voices
-        voices.find(v => v.name.includes('Google UK English Male')) || 
-        voices.find(v => v.name.includes('Google US English Male')) ||
-        voices.find(v => v.name.includes('Google') && v.name.toLowerCase().includes('male')) ||
-        voices.find(v => v.name.toLowerCase().includes('male') && v.lang.startsWith('en')) ||
-        voices.find(v => v.lang.startsWith('en-US')) || 
-        voices[0];
+      let bestVoice;
+
+      if (settings.personalityMode === 'professional' || settings.personalityMode === 'concise') {
+         bestVoice = 
+           voices.find(v => v.name.includes('Online (Natural)') && v.name.includes('Male')) ||
+           voices.find(v => (v.name === 'Alex' || v.name === 'Daniel')) ||
+           voices.find(v => v.name.includes('Google UK English Male')) ||
+           voices.find(v => v.name.toLowerCase().includes('male')) ||
+           voices[0];
+         utterance.rate = settings.personalityMode === 'concise' ? 1.15 : 1.0;
+         utterance.pitch = 0.9;
+      } else {
+         // friendly or creative
+         bestVoice = 
+           voices.find(v => v.name.includes('Online (Natural)') && v.name.includes('Female')) ||
+           voices.find(v => (v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Karen'))) ||
+           voices.find(v => v.name.includes('Google US English')) ||
+           voices.find(v => !v.name.toLowerCase().includes('male')) ||
+           voices[0];
+         utterance.rate = settings.personalityMode === 'creative' ? 1.05 : 1.0;
+         utterance.pitch = settings.personalityMode === 'creative' ? 1.2 : 1.1;
+      }
                       
       if (bestVoice) utterance.voice = bestVoice;
-      
-      // Keep rate and pitch close to default (1.0). Heavy modification of pitch/rate makes voices sound extremely robotic.
-      utterance.rate = 1.05; // Slightly faster for natural conversational pacing
-      // Only lower pitch slightly for standard voices, but keep at 1.0 for natural voices
-      utterance.pitch = bestVoice?.name.includes('Natural') || bestVoice?.name.includes('Online') ? 1.0 : 0.95;
       
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => {

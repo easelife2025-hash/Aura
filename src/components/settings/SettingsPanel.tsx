@@ -1,27 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Settings2, Bell, BrainCircuit, Sparkles, Moon, Sun, Monitor, BellRing, UserCircle, Activity } from 'lucide-react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, messaging } from '../../firebase';
 import { getToken } from 'firebase/messaging';
-
-interface UserSettings {
-  smartReminders: boolean;
-  pushNotifications: boolean;
-  personalizedRecommendations: boolean;
-  dailyInsights: boolean;
-  personalityMode: 'professional' | 'friendly' | 'concise' | 'creative';
-  theme: 'system' | 'dark' | 'light' | 'cosmic';
-}
-
-const defaultSettings: UserSettings = {
-  smartReminders: true,
-  pushNotifications: false,
-  personalizedRecommendations: true,
-  dailyInsights: true,
-  personalityMode: 'professional',
-  theme: 'dark'
-};
+import { useSettings, UserSettings } from '../../contexts/SettingsContext';
 
 function Toggle({ checked, onChange }: { checked: boolean, onChange: (v: boolean) => void }) {
   return (
@@ -39,98 +21,65 @@ function Toggle({ checked, onChange }: { checked: boolean, onChange: (v: boolean
 }
 
 export default function SettingsPanel({ user }: { user: any }) {
-  const [settings, setSettings] = useState<UserSettings>(defaultSettings);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { settings, updateSettings, loading } = useSettings();
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadSettings() {
-      if (!user) return;
-      try {
-        const docRef = doc(db, `users/${user.uid}/settings/preferences`);
-        const snapshot = await getDoc(docRef);
-        if (snapshot.exists()) {
-          setSettings(snapshot.data() as UserSettings);
-        }
-      } catch (err) {
-        console.error("Failed to load settings", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadSettings();
-  }, [user]);
 
   const saveSettings = async (newSettings: UserSettings) => {
     if (!user) return;
-    setSaving(true);
-    setSettings(newSettings);
-    try {
-      const docRef = doc(db, `users/${user.uid}/settings/preferences`);
-      await setDoc(docRef, newSettings);
+    
+    await updateSettings(newSettings);
 
+    try {
       if (newSettings.pushNotifications) {
         if (messaging) {
           try {
             if (typeof Notification === 'undefined') {
               alert("Your browser does not support notifications.");
-              setSettings(s => ({ ...s, pushNotifications: false }));
-              setSaving(false);
+              await updateSettings({ pushNotifications: false });
               return;
             }
 
-            // Check if we are inside an iframe (preview mode)
             if (window !== window.top && Notification.permission !== 'granted') {
                alert("Browser blocks notification requests inside embedded previews.\n\nPlease click the '🔗' or pop-out icon at the top right of the preview pane to open the app in a new tab, then try again.");
-               setSettings(s => ({ ...s, pushNotifications: false }));
-               setSaving(false);
+               await updateSettings({ pushNotifications: false });
                return;
             }
 
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
+              // @ts-ignore
               const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
               if (!vapidKey) {
                  alert("Oops! The Magic VAPID Key is missing. Please add VITE_FIREBASE_VAPID_KEY in your secrets or .env file.");
-                 setSettings(s => ({ ...s, pushNotifications: false }));
-                 await setDoc(docRef, { ...newSettings, pushNotifications: false });
-                 setSaving(false);
+                 await updateSettings({ pushNotifications: false });
                  return;
               }
 
               const token = await getToken(messaging, { vapidKey });
-              console.log("Notification permission granted! Token:", token);
               setDeviceToken(token);
-              // Here you would save the token to the user's document in Firestore so you can message them later
               
             } else {
                alert(`Notification permission was ${permission}. Please allow notifications in your browser settings.`);
-               setSettings(s => ({ ...s, pushNotifications: false }));
-               await setDoc(docRef, { ...newSettings, pushNotifications: false });
+               await updateSettings({ pushNotifications: false });
             }
           } catch(e) {
              console.error("Notification permission failed", e);
              alert("Failed to request notification permission. " + (e as Error).message);
-             setSettings(s => ({ ...s, pushNotifications: false }));
-             await setDoc(docRef, { ...newSettings, pushNotifications: false });
+             await updateSettings({ pushNotifications: false });
           }
         } else {
            alert("Push notifications are not supported in this browser.");
-           setSettings(s => ({ ...s, pushNotifications: false }));
-           await setDoc(docRef, { ...newSettings, pushNotifications: false });
+           await updateSettings({ pushNotifications: false });
         }
       }
 
     } catch (err) {
-      console.error("Failed to save settings", err);
-    } finally {
-      setSaving(false);
+      console.error("Failed to save settings operations", err);
     }
   };
 
   const updateField = <K extends keyof UserSettings>(field: K, value: UserSettings[K]) => {
-    saveSettings({ ...settings, [field]: value });
+    saveSettings({ ...settings, [field]: value } as UserSettings);
   };
 
   if (loading) {
@@ -223,6 +172,7 @@ export default function SettingsPanel({ user }: { user: any }) {
                                      body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
                                      icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png", 
                                      badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                     // @ts-ignore
                                      vibrate: [200, 100, 200]
                                    });
                                  } else {
@@ -231,6 +181,7 @@ export default function SettingsPanel({ user }: { user: any }) {
                                        body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
                                        icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
                                        badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                       // @ts-ignore
                                        vibrate: [200, 100, 200]
                                      });
                                    }).catch(function(err) {
