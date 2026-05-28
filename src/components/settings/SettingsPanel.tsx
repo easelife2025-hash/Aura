@@ -183,7 +183,31 @@ export default function SettingsPanel({ user }: { user: any }) {
                      {deviceToken}
                      <div className="flex gap-2 mt-2">
                        <button 
-                         onClick={() => navigator.clipboard.writeText(deviceToken)}
+                         onClick={async () => {
+                           if (navigator.clipboard && window.isSecureContext) {
+                               try {
+                                 await navigator.clipboard.writeText(deviceToken);
+                                 alert("Token copied successfully!");
+                               } catch(err) {
+                                 alert("Failed to copy token: " + err);
+                               }
+                           } else {
+                               const textArea = document.createElement("textarea");
+                               textArea.value = deviceToken;
+                               textArea.style.position = "absolute";
+                               textArea.style.left = "-999999px";
+                               document.body.prepend(textArea);
+                               textArea.select();
+                               try {
+                                   document.execCommand('copy');
+                                   alert("Token copied successfully!");
+                               } catch (error) {
+                                   alert("Copy failed: " + error);
+                               } finally {
+                                   textArea.remove();
+                               }
+                           }
+                         }}
                          className="flex-1 font-medium bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg border border-purple-500/30 transition-colors"
                        >
                           Copy Token
@@ -191,10 +215,18 @@ export default function SettingsPanel({ user }: { user: any }) {
                        <button 
                          onClick={() => {
                            if (Notification.permission === 'granted') {
-                             navigator.serviceWorker.ready.then(function(registration) {
-                               registration.showNotification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                             navigator.serviceWorker.getRegistration().then(function(reg) {
+                               if (reg) {
+                                 reg.showNotification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                               } else {
+                                 navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(newReg) {
+                                   newReg.showNotification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                                 }).catch(function(err) {
+                                   alert("Service Worker not registered: " + err.message);
+                                 });
+                               }
                              }).catch(function(err) {
-                               alert("Service Worker not ready: " + err.message);
+                               alert("Service Worker error: " + err.message);
                              });
                            } else {
                              alert("Permission not granted yet.");
