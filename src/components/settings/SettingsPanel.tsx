@@ -217,10 +217,20 @@ export default function SettingsPanel({ user }: { user: any }) {
                            if (Notification.permission === 'granted') {
                              navigator.serviceWorker.getRegistration().then(function(reg) {
                                if (reg) {
-                                 reg.showNotification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                                 reg.showNotification("Hello from Aura! 🌟", { 
+                                   body: "Your notifications are working perfectly!",
+                                   icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png", // A placeholder icon
+                                   badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                   vibrate: [200, 100, 200]
+                                 });
                                } else {
                                  navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(newReg) {
-                                   newReg.showNotification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                                   newReg.showNotification("Hello from Aura! 🌟", { 
+                                     body: "Your notifications are working perfectly!",
+                                     icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                     badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                     vibrate: [200, 100, 200]
+                                   });
                                  }).catch(function(err) {
                                    alert("Service Worker not registered: " + err.message);
                                  });
