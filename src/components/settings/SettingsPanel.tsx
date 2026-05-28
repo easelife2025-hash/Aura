@@ -191,7 +191,11 @@ export default function SettingsPanel({ user }: { user: any }) {
                        <button 
                          onClick={() => {
                            if (Notification.permission === 'granted') {
-                             new Notification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                             navigator.serviceWorker.ready.then(function(registration) {
+                               registration.showNotification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                             }).catch(function(err) {
+                               alert("Service Worker not ready: " + err.message);
+                             });
                            } else {
                              alert("Permission not granted yet.");
                            }
