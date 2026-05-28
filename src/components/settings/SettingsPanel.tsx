@@ -181,12 +181,26 @@ export default function SettingsPanel({ user }: { user: any }) {
                    <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200 break-all space-y-2">
                      <span className="font-bold text-purple-400 block mb-1">Your Device Token (For Testing):</span>
                      {deviceToken}
-                     <button 
-                       onClick={() => navigator.clipboard.writeText(deviceToken)}
-                       className="block mt-2 font-medium bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg border border-purple-500/30 w-full transition-colors"
-                     >
-                        Copy Token
-                     </button>
+                     <div className="flex gap-2 mt-2">
+                       <button 
+                         onClick={() => navigator.clipboard.writeText(deviceToken)}
+                         className="flex-1 font-medium bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg border border-purple-500/30 transition-colors"
+                       >
+                          Copy Token
+                       </button>
+                       <button 
+                         onClick={() => {
+                           if (Notification.permission === 'granted') {
+                             new Notification("Hello from Aura! 🌟", { body: "Your notifications are working perfectly!" });
+                           } else {
+                             alert("Permission not granted yet.");
+                           }
+                         }}
+                         className="flex-1 font-medium bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30 transition-colors"
+                       >
+                          Test Notification
+                       </button>
+                     </div>
                    </div>
                 )}
              </div>
