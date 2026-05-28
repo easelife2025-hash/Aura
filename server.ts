@@ -75,7 +75,7 @@ async function startServer() {
       });
 
       const chat = ai.chats.create({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-2.5-flash",
         config: {
           systemInstruction: `You are Aura... (system prompt). Be conversational and concise. NEVER use terminal-like prefixes (like ">_", ">", or "**Aura**"). Speak simply and naturally in plain language without markdown symbols that sound robotic when read aloud (avoid asterisks, underscores, or hash symbols). Keep responses brief unless explicitly asked for detail. For informational queries, adopt a highly authoritative, fact-based tone.`,
           temperature: 0.7,
