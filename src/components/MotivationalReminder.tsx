@@ -72,6 +72,12 @@ export default function MotivationalReminder({ user }: { user: any }) {
              message: `Generate a short (1-2 sentences max), highly motivational, human-like reminder for someone who has completed ${completedTasks.length} tasks today but still needs to finish "${latestPending}". ${isUrgent ? 'This task is URGENT and has been pending for over a day, emphasize taking immediate action.' : 'Keep it light and encouraging.'} ${bestStreak > 0 ? `They have a ${bestStreak}-day streak going, mention keeping the momentum alive.` : ''} Do not use markdown. Do not include quotes.`
           })
         });
+        
+        if (!res.ok) {
+           console.error("Motivational prompt failed with status:", res.status);
+           return;
+        }
+
         const text = await res.text();
         
         if (text) {

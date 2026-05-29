@@ -5,6 +5,11 @@ import { auth } from "../firebase";
 let cachedAccessToken: string | null = null;
 let isSigningIn = false;
 
+// Try to hydrate from sessionStorage if it exists
+if (typeof window !== 'undefined') {
+  cachedAccessToken = sessionStorage.getItem('gmailAccessToken') || null;
+}
+
 export const getAccessToken = async (): Promise<string | null> => {
   return cachedAccessToken;
 };
@@ -18,13 +23,10 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       if (u) {
         setUser(u);
-        if (!cachedAccessToken && !isSigningIn) {
-             // Incase we have user but no access token, we might need them to re-login if token requires
-             // but we keep user signed in.
-        }
       } else {
          setUser(null);
          cachedAccessToken = null;
+         if (typeof window !== 'undefined') sessionStorage.removeItem('gmailAccessToken');
       }
       setLoading(false);
     });
@@ -57,6 +59,7 @@ export function useAuth() {
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
          cachedAccessToken = credential.accessToken;
+         if (typeof window !== 'undefined') sessionStorage.setItem('gmailAccessToken', credential.accessToken);
       }
       setUser(result.user);
     } catch (e: any) {
@@ -78,6 +81,7 @@ export function useAuth() {
   const logout = async () => {
      await signOut(auth);
      cachedAccessToken = null;
+     if (typeof window !== 'undefined') sessionStorage.removeItem('gmailAccessToken');
   };
 
   return { user, loading, login, logout, err };

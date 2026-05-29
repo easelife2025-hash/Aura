@@ -184,8 +184,14 @@ export default function CommandCenter({ user }: { user: any }) {
          signal: controller.signal
        });
        clearTimeout(timeoutId);
-       const data = await res.json();
-       setDailyPlan(data.text);
+       
+       if (!res.ok) {
+         console.error("Strategy generation failed:", res.status);
+         return;
+       }
+
+       const text = await res.text();
+       setDailyPlan(text);
     } catch(err) {
        console.error(err);
     } finally {
