@@ -12,6 +12,7 @@ import LandingPage from './components/landing/LandingPage';
 import CommandCenter from './components/dashboard/CommandCenter';
 import VoiceAssistant from './components/voice/VoiceAssistant';
 import SettingsPanel from './components/settings/SettingsPanel';
+import MotivationalReminder from './components/MotivationalReminder';
 import { cn } from './utils';
 import { Message } from './types';
 import { useSettings } from './contexts/SettingsContext';
@@ -568,6 +569,8 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
             </motion.div>
           )}
         </AnimatePresence>
+        
+        <MotivationalReminder user={user} />
 
       </main>
     </div>
