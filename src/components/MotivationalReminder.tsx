@@ -72,17 +72,17 @@ export default function MotivationalReminder({ user }: { user: any }) {
              message: `Generate a short (1-2 sentences max), highly motivational, human-like reminder for someone who has completed ${completedTasks.length} tasks today but still needs to finish "${latestPending}". ${isUrgent ? 'This task is URGENT and has been pending for over a day, emphasize taking immediate action.' : 'Keep it light and encouraging.'} ${bestStreak > 0 ? `They have a ${bestStreak}-day streak going, mention keeping the momentum alive.` : ''} Do not use markdown. Do not include quotes.`
           })
         });
-        const data = await res.json();
+        const text = await res.text();
         
-        if (data.text) {
+        if (text) {
           const newToastId = Date.now();
-          setToasts(current => [...current, { id: newToastId, message: data.text, isUrgent, streak: bestStreak }]);
+          setToasts(current => [...current, { id: newToastId, message: text, isUrgent, streak: bestStreak }]);
           
           if (settings.pushNotifications && Notification.permission === 'granted') {
              try {
                 navigator.serviceWorker.ready.then(reg => {
                   reg.showNotification(isUrgent ? "Action Required ⚡" : "Goal Reminder 🎯", {
-                    body: data.text,
+                    body: text,
                     icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
                   });
                 });
