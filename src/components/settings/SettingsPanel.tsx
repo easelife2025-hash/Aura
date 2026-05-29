@@ -163,34 +163,66 @@ export default function SettingsPanel({ user }: { user: any }) {
                        </button>
                        <button 
                          onClick={() => {
-                           if (Notification.permission === 'granted') {
-                             alert("Perfect! Now, minimize the browser or switch to another app. The AI reminder will arrive in 5 seconds.");
+                           if (Notification.permission === 'granted' || true) {
+                             alert("Perfect! Now, minimize the browser or switch to another app. The AI reminder will arrive in 5 seconds (both via web push and Email).");
                              setTimeout(() => {
-                               navigator.serviceWorker.getRegistration().then(function(reg) {
-                                 if (reg) {
-                                   reg.showNotification("Time to stretch! 🧘", { 
-                                     body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
-                                     icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png", 
-                                     badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
-                                     // @ts-ignore
-                                     vibrate: [200, 100, 200]
-                                   });
-                                 } else {
-                                   navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(newReg) {
-                                     newReg.showNotification("Time to stretch! 🧘", { 
+                               if (Notification.permission === 'granted') {
+                                 navigator.serviceWorker.getRegistration().then(function(reg) {
+                                   if (reg) {
+                                     reg.showNotification("Time to stretch! 🧘", { 
                                        body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
-                                       icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                       icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png", 
                                        badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
                                        // @ts-ignore
                                        vibrate: [200, 100, 200]
                                      });
-                                   }).catch(function(err) {
-                                     console.error("Service Worker not registered: " + err.message);
-                                   });
-                                 }
-                               }).catch(function(err) {
-                                 console.error("Service Worker error: " + err.message);
-                               });
+                                   } else {
+                                     navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(newReg) {
+                                       newReg.showNotification("Time to stretch! 🧘", { 
+                                         body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
+                                         icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                         badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
+                                         // @ts-ignore
+                                         vibrate: [200, 100, 200]
+                                       });
+                                     }).catch(function(err) {
+                                       console.error("Service Worker not registered: " + err.message);
+                                     });
+                                   }
+                                 }).catch(function(err) {
+                                   console.error("Service Worker error: " + err.message);
+                                 });
+                               }
+                               // Send test email
+                               if (user?.email) {
+                                 import('../../hooks/useAuth').then(async ({ getAccessToken }) => {
+                                   const token = await getAccessToken();
+                                   if (token) {
+                                     const emailBody = [
+                                       `To: ${user.email}`,
+                                       `Subject: Aura: Time to stretch! 🧘`,
+                                       `Content-Type: text/plain; charset=utf-8`,
+                                       '',
+                                       "Aura noticed you've been focused for a while. Take a 2-minute break.",
+                                       '',
+                                       '-- ',
+                                       'Sent by Aura Assistant'
+                                     ].join('\n');
+                                     const base64EncodedEmail = btoa(unescape(encodeURIComponent(emailBody)))
+                                       .replace(/\+/g, '-')
+                                       .replace(/\//g, '_')
+                                       .replace(/=+$/, '');
+                                     fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+                                       method: 'POST',
+                                       headers: {
+                                         'Authorization': `Bearer ${token}`,
+                                         'Content-Type': 'application/json'
+                                       },
+                                       body: JSON.stringify({ raw: base64EncodedEmail })
+                                     }).catch(e => console.error("Test email failed", e));
+                                   }
+                                 });
+                               }
                              }, 5000);
                            } else {
                              alert("Permission not granted yet. Please enable push notifications first.");
