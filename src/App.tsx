@@ -187,39 +187,6 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
             console.error(e);
           }
         }
-
-        // Send email to user's own inbox
-        if (user?.email) {
-          import('./hooks/useAuth').then(async ({ getAccessToken }) => {
-            const token = await getAccessToken();
-            if (token) {
-              const emailBody = [
-                `To: ${user.email}`,
-                `Subject: Aura: New Message`,
-                `Content-Type: text/plain; charset=utf-8`,
-                '',
-                fullResponse,
-                '',
-                '-- ',
-                'Sent by Aura Assistant'
-              ].join('\n');
-
-              const base64EncodedEmail = btoa(unescape(encodeURIComponent(emailBody)))
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
-
-              fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ raw: base64EncodedEmail })
-              }).catch(e => console.error("Failed to send email notification", e));
-            }
-          });
-        }
       }
 
       setStreamingMessage(null);

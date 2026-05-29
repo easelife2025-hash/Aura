@@ -170,6 +170,37 @@ export default function CommandCenter({ user }: { user: any }) {
        streak: newStreak,
        lastCompleted: Date.now()
     });
+
+    if (settings.pushNotifications && user?.email) {
+       import('../../hooks/useAuth').then(async ({ getAccessToken }) => {
+         const token = await getAccessToken();
+         if (token) {
+           const emailBody = [
+             `To: ${user.email}`,
+             `Subject: Aura: Core Routine Update 🔁`,
+             `Content-Type: text/plain; charset=utf-8`,
+             '',
+             `Great job! You just completed your core routine: "${habit.title}".`,
+             `Your current streak is now ${newStreak} day${newStreak > 1 ? 's' : ''}! Keep up the momentum.`,
+             '',
+             '-- ',
+             'Sent by Aura Assistant'
+           ].join('\n');
+           const base64EncodedEmail = btoa(unescape(encodeURIComponent(emailBody)))
+             .replace(/\+/g, '-')
+             .replace(/\//g, '_')
+             .replace(/=+$/, '');
+           fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+             method: 'POST',
+             headers: {
+               'Authorization': `Bearer ${token}`,
+               'Content-Type': 'application/json'
+             },
+             body: JSON.stringify({ raw: base64EncodedEmail })
+           }).catch(e => console.error("Habit email failed", e));
+         }
+       });
+    }
   };
 
   const generatePlan = async () => {
@@ -192,6 +223,36 @@ export default function CommandCenter({ user }: { user: any }) {
 
        const text = await res.text();
        setDailyPlan(text);
+       
+       if (settings.pushNotifications && user?.email) {
+          import('../../hooks/useAuth').then(async ({ getAccessToken }) => {
+            const token = await getAccessToken();
+            if (token) {
+              const emailBody = [
+                `To: ${user.email}`,
+                `Subject: Aura: Your Daily AI Strategy`,
+                `Content-Type: text/plain; charset=utf-8`,
+                '',
+                text,
+                '',
+                '-- ',
+                'Sent by Aura Assistant'
+              ].join('\n');
+              const base64EncodedEmail = btoa(unescape(encodeURIComponent(emailBody)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+              fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ raw: base64EncodedEmail })
+              }).catch(e => console.error("Strategy email failed", e));
+            }
+          });
+       }
     } catch(err) {
        console.error(err);
     } finally {

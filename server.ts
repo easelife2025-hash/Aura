@@ -75,34 +75,35 @@ async function startServer() {
       });
 
       const chat = ai.chats.create({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.1-pro-preview",
         config: {
           systemInstruction: `You are Aura... (system prompt). Be conversational and concise. NEVER use terminal-like prefixes (like ">_", ">", or "**Aura**"). Speak simply and naturally in plain language without markdown symbols that sound robotic when read aloud (avoid asterisks, underscores, or hash symbols). Keep responses brief unless explicitly asked for detail. For informational queries, adopt a highly authoritative, fact-based tone.`,
           temperature: 0.7,
         },
       });
 
-      // Instead of relying purely on the model's transient state, 
-      // we prepend recent context if provided, or handle it statelessly 
-      // via client context. For this iteration, we send the new message 
-      // along with a compressed context of the recent conversation history.
       let prompt = message;
       if (historyContext && historyContext.length > 0) {
           prompt = `Previous relevant context:\n${historyContext}\n\nNew user message:\n${message}`;
       }
 
-      res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Transfer-Encoding', 'chunked');
-
       const responseStream = await chat.sendMessageStream({ message: prompt });
       
       for await (const chunk of responseStream) {
+        if (!res.headersSent) {
+          res.setHeader('Content-Type', 'text/plain');
+          res.setHeader('Transfer-Encoding', 'chunked');
+        }
         res.write(chunk.text);
       }
       res.end();
     } catch (error: any) {
       console.error("AI Error (server.ts):", error);
-      res.status(500).json({ error: error.message || "Failed to process request." });
+      if (!res.headersSent) {
+        res.status(500).json({ error: error.message || "Failed to process request." });
+      } else {
+        res.end(`\n\n[System Error: ${error.message}]`);
+      }
     }
   });
 
