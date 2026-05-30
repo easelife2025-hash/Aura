@@ -90,9 +90,11 @@ export default function MotivationalReminder({ user }: { user: any }) {
                import('../hooks/useAuth').then(async ({ getAccessToken }) => {
                  const token = await getAccessToken();
                  if (token) {
-                   const emailBody = [
-                     `To: ${user.email}`,
-                     `Subject: Aura: ${isUrgent ? "Action Required ⚡" : "Goal Reminder 🎯"}`,
+                   const subjectText = `Aura: ${isUrgent ? "Action Required ⚡" : "Goal Reminder 🎯"}`;
+                     const subjectBase64 = btoa(unescape(encodeURIComponent(subjectText)));
+                     const emailBody = [
+                       `To: ${user.email}`,
+                       `Subject: =?utf-8?B?${subjectBase64}?=`,
                      `Content-Type: text/plain; charset=utf-8`,
                      '',
                      text,

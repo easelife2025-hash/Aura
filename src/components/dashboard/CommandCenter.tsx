@@ -6,6 +6,7 @@ import { Task, Habit } from '../../types';
 import { CheckCircle, Circle, Plus, Zap, TrendingUp, Calendar as CalendarIcon, Flame, BrainCircuit, Activity, Bot } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, isToday, isYesterday, startOfWeek, eachDayOfInterval } from 'date-fns';
+import { useSettings } from '../../contexts/SettingsContext';
 
 import { Mail } from 'lucide-react';
 import { getAccessToken } from '../../hooks/useAuth';
@@ -98,6 +99,7 @@ function MailWidget() {
 }
 
 export default function CommandCenter({ user }: { user: any }) {
+  const { settings } = useSettings();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [newTask, setNewTask] = useState('');
@@ -175,9 +177,11 @@ export default function CommandCenter({ user }: { user: any }) {
        import('../../hooks/useAuth').then(async ({ getAccessToken }) => {
          const token = await getAccessToken();
          if (token) {
-           const emailBody = [
-             `To: ${user.email}`,
-             `Subject: Aura: Core Routine Update 🔁`,
+           const subjectText = `Aura: Core Routine Update 🔁`;
+             const subjectBase64 = btoa(unescape(encodeURIComponent(subjectText)));
+             const emailBody = [
+               `To: ${user.email}`,
+               `Subject: =?utf-8?B?${subjectBase64}?=`,
              `Content-Type: text/plain; charset=utf-8`,
              '',
              `Great job! You just completed your core routine: "${habit.title}".`,
@@ -228,9 +232,11 @@ export default function CommandCenter({ user }: { user: any }) {
           import('../../hooks/useAuth').then(async ({ getAccessToken }) => {
             const token = await getAccessToken();
             if (token) {
-              const emailBody = [
-                `To: ${user.email}`,
-                `Subject: Aura: Your Daily AI Strategy`,
+              const subjectText = `Aura: Your Daily AI Strategy`;
+                const subjectBase64 = btoa(unescape(encodeURIComponent(subjectText)));
+                const emailBody = [
+                  `To: ${user.email}`,
+                  `Subject: =?utf-8?B?${subjectBase64}?=`,
                 `Content-Type: text/plain; charset=utf-8`,
                 '',
                 text,

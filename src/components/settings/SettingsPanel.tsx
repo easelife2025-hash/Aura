@@ -108,9 +108,11 @@ export default function SettingsPanel({ user }: { user: any }) {
                                    return;
                                  }
                                  
+                                 const subjectText = `Aura: Time to stretch! 🧘`;
+                                 const subjectBase64 = btoa(unescape(encodeURIComponent(subjectText)));
                                  const emailBody = [
                                    `To: ${user.email}`,
-                                   `Subject: Aura: Time to stretch! 🧘`,
+                                   `Subject: =?utf-8?B?${subjectBase64}?=`,
                                    `Content-Type: text/plain; charset=utf-8`,
                                    '',
                                    "Aura noticed you've been focused for a while. Take a 2-minute break.",
