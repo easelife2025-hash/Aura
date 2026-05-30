@@ -173,22 +173,6 @@ function Workspace({ logout, user }: { logout: () => void, user: any }) {
         console.error("Failed to save assistant message:", dbErr);
       }
 
-      if (settings.pushNotifications) {
-        if (Notification.permission === 'granted') {
-          try {
-            navigator.serviceWorker.ready.then(reg => {
-              reg.showNotification("Aura says:", {
-                body: fullResponse.length > 100 ? fullResponse.substring(0, 97) + "..." : fullResponse,
-                icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
-                badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png"
-              });
-            }).catch(console.error);
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      }
-
       setStreamingMessage(null);
       setTimeout(() => setMood('neutral'), 3000);
     } catch (error: any) {

@@ -31,48 +31,11 @@ export default function SettingsPanel({ user }: { user: any }) {
 
     try {
       if (newSettings.pushNotifications) {
-        if (messaging) {
-          try {
-            if (typeof Notification === 'undefined') {
-              alert("Your browser does not support notifications.");
-              await updateSettings({ pushNotifications: false });
-              return;
-            }
-
-            if (window !== window.top && Notification.permission !== 'granted') {
-               alert("Browser blocks notification requests inside embedded previews.\n\nPlease click the '🔗' or pop-out icon at the top right of the preview pane to open the app in a new tab, then try again.");
-               await updateSettings({ pushNotifications: false });
-               return;
-            }
-
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-              // @ts-ignore
-              const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-              if (!vapidKey) {
-                 alert("Oops! The Magic VAPID Key is missing. Please add VITE_FIREBASE_VAPID_KEY in your secrets or .env file.");
-                 await updateSettings({ pushNotifications: false });
-                 return;
-              }
-
-              const token = await getToken(messaging, { vapidKey });
-              setDeviceToken(token);
-              
-            } else {
-               alert(`Notification permission was ${permission}. Please allow notifications in your browser settings.`);
-               await updateSettings({ pushNotifications: false });
-            }
-          } catch(e) {
-             console.error("Notification permission failed", e);
-             alert("Failed to request notification permission. " + (e as Error).message);
-             await updateSettings({ pushNotifications: false });
-          }
-        } else {
-           alert("Push notifications are not supported in this browser.");
-           await updateSettings({ pushNotifications: false });
+        // Email notifications are enabled, we rely on the gmail auth token
+        if (!user?.email) {
+          alert("We need your email to send notifications.");
         }
       }
-
     } catch (err) {
       console.error("Failed to save settings operations", err);
     }
@@ -121,78 +84,22 @@ export default function SettingsPanel({ user }: { user: any }) {
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                    <div>
-                     <div className="text-slate-200 font-medium">Push Notifications</div>
-                     <div className="text-slate-400 text-sm mt-0.5">Real-time alerts via Firebase Cloud Messaging</div>
+                     <div className="text-slate-200 font-medium">Email Notifications</div>
+                     <div className="text-slate-400 text-sm mt-0.5">Receive AI strategy, reminders, and updates directly to your Inbox</div>
                    </div>
                    <Toggle checked={settings.pushNotifications} onChange={(v) => updateField('pushNotifications', v)} />
                 </div>
-                {deviceToken && (
-                   <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200 break-all space-y-2">
-                     <span className="font-bold text-purple-400 block mb-1">Your Device Token (For Testing):</span>
-                     {deviceToken}
+                
+                {settings.pushNotifications && (
+                   <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2">
+                     <p className="text-xs text-purple-200">
+                       Aura will send notifications securely to <strong>{user?.email}</strong>.
+                     </p>
                      <div className="flex gap-2 mt-2">
                        <button 
-                         onClick={async () => {
-                           if (navigator.clipboard && window.isSecureContext) {
-                               try {
-                                 await navigator.clipboard.writeText(deviceToken);
-                                 alert("Token copied successfully!");
-                               } catch(err) {
-                                 alert("Failed to copy token: " + err);
-                               }
-                           } else {
-                               const textArea = document.createElement("textarea");
-                               textArea.value = deviceToken;
-                               textArea.style.position = "absolute";
-                               textArea.style.left = "-999999px";
-                               document.body.prepend(textArea);
-                               textArea.select();
-                               try {
-                                   document.execCommand('copy');
-                                   alert("Token copied successfully!");
-                               } catch (error) {
-                                   alert("Copy failed: " + error);
-                               } finally {
-                                   textArea.remove();
-                               }
-                           }
-                         }}
-                         className="flex-1 font-medium bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1.5 rounded-lg border border-purple-500/30 transition-colors"
-                       >
-                          Copy Token
-                       </button>
-                       <button 
                          onClick={() => {
-                           if (Notification.permission === 'granted' || true) {
-                             alert("Perfect! Now, minimize the browser or switch to another app. The AI reminder will arrive in 5 seconds (both via web push and Email).");
+                             alert("Aura is now set to send Test Email. Please wait 5 seconds.");
                              setTimeout(() => {
-                               if (Notification.permission === 'granted') {
-                                 navigator.serviceWorker.getRegistration().then(function(reg) {
-                                   if (reg) {
-                                     reg.showNotification("Time to stretch! 🧘", { 
-                                       body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
-                                       icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png", 
-                                       badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
-                                       // @ts-ignore
-                                       vibrate: [200, 100, 200]
-                                     });
-                                   } else {
-                                     navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(newReg) {
-                                       newReg.showNotification("Time to stretch! 🧘", { 
-                                         body: "Aura noticed you've been focused for a while. Take a 2-minute break.",
-                                         icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
-                                         badge: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
-                                         // @ts-ignore
-                                         vibrate: [200, 100, 200]
-                                       });
-                                     }).catch(function(err) {
-                                       console.error("Service Worker not registered: " + err.message);
-                                     });
-                                   }
-                                 }).catch(function(err) {
-                                   console.error("Service Worker error: " + err.message);
-                                 });
-                               }
                                // Send test email
                                if (user?.email) {
                                  import('../../hooks/useAuth').then(async ({ getAccessToken }) => {
@@ -220,17 +127,16 @@ export default function SettingsPanel({ user }: { user: any }) {
                                        },
                                        body: JSON.stringify({ raw: base64EncodedEmail })
                                      }).catch(e => console.error("Test email failed", e));
+                                   } else {
+                                     alert("Failed to send test email: Gmail token missing. Please sign out and sign in again.");
                                    }
                                  });
                                }
                              }, 5000);
-                           } else {
-                             alert("Permission not granted yet. Please enable push notifications first.");
-                           }
                          }}
-                         className="flex-1 font-medium bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-500/30 transition-colors"
+                         className="w-full font-medium bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-2 rounded-lg border border-emerald-500/30 transition-colors"
                        >
-                          Test AI Reminder
+                          Test AI Email Reminder
                        </button>
                      </div>
                    </div>

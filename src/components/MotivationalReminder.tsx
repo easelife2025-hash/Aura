@@ -85,18 +85,6 @@ export default function MotivationalReminder({ user }: { user: any }) {
           setToasts(current => [...current, { id: newToastId, message: text, isUrgent, streak: bestStreak }]);
           
           if (settings.pushNotifications) {
-             // System notification
-             if (Notification.permission === 'granted') {
-               try {
-                  navigator.serviceWorker.ready.then(reg => {
-                    reg.showNotification(isUrgent ? "Action Required ⚡" : "Goal Reminder 🎯", {
-                      body: text,
-                      icon: "https://cdn-icons-png.flaticon.com/512/3237/3237472.png",
-                    });
-                  });
-               } catch(e) {}
-             }
-
              // Send email to user's own inbox
              if (user?.email) {
                import('../hooks/useAuth').then(async ({ getAccessToken }) => {
