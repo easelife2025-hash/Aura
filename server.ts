@@ -75,7 +75,7 @@ async function startServer() {
       });
 
       const chat = ai.chats.create({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-2.5-flash",
         config: {
           systemInstruction: `You are Aura... (system prompt). Be conversational and concise. NEVER use terminal-like prefixes (like ">_", ">", or "**Aura**"). Speak simply and naturally in plain language without markdown symbols that sound robotic when read aloud (avoid asterisks, underscores, or hash symbols). Keep responses brief unless explicitly asked for detail. For informational queries, adopt a highly authoritative, fact-based tone.`,
           temperature: 0.7,
@@ -100,7 +100,11 @@ async function startServer() {
     } catch (error: any) {
       console.error("AI Error (server.ts):", error);
       if (!res.headersSent) {
-        res.status(500).json({ error: error.message || "Failed to process request." });
+        if (error.status === 429 || (error.message && error.message.includes('429'))) {
+          res.status(429).json({ error: "AI Quota Exceeded. You have hit the Gemini API free tier rate limit. Please wait a minute and try again." });
+        } else {
+          res.status(500).json({ error: error.message || "Failed to process request." });
+        }
       } else {
         res.end(`\n\n[System Error: ${error.message}]`);
       }

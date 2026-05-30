@@ -74,6 +74,9 @@ export default function MotivationalReminder({ user }: { user: any }) {
         });
         
         if (!res.ok) {
+           if (res.status === 429) {
+             setAiMessage('AI Quota Exceeded. You have hit the Gemini API free tier rate limit. Please wait a minute and try again.');
+           }
            console.error("Motivational prompt failed with status:", res.status);
            return;
         }

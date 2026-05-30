@@ -221,7 +221,11 @@ export default function CommandCenter({ user }: { user: any }) {
        clearTimeout(timeoutId);
        
        if (!res.ok) {
-         console.error("Strategy generation failed:", res.status);
+         if (res.status === 429) {
+           setDailyPlan("AI Quota Exceeded. You have hit the Gemini API free tier rate limit. Please wait a minute and try again.");
+         } else {
+           console.error("Strategy generation failed:", res.status);
+         }
          return;
        }
 
