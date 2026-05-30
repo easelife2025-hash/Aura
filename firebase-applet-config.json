@@ -1,9 +1,8 @@
 {
-  "projectId": "red-aura-ncf5x",
-  "appId": "1:213623640947:web:c9dc64e739ceb4831b6b06",
-  "apiKey": "AIzaSyAVyx4OX3AZMNnPnqrPl07fnqSwLbN3q_M",
-  "authDomain": "red-aura-ncf5x.firebaseapp.com",
-  "storageBucket": "red-aura-ncf5x.firebasestorage.app",
-  "messagingSenderId": "213623640947",
-  "measurementId": ""
+  "apiKey": "AIzaSyBgrCccmCYUXyXvbFhaF5NocfnuWC_LCa4",
+  "authDomain": "aura-84170.firebaseapp.com",
+  "projectId": "aura-84170",
+  "storageBucket": "aura-84170.firebasestorage.app",
+  "messagingSenderId": "441749708484",
+  "appId": "1:441749708484:web:0e5c1999e1747b90acf391"
 }
