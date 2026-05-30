@@ -97,42 +97,54 @@ export default function SettingsPanel({ user }: { user: any }) {
                      </p>
                      <div className="flex gap-2 mt-2">
                        <button 
-                         onClick={() => {
-                             alert("Aura is now set to send Test Email. Please wait 5 seconds.");
-                             setTimeout(() => {
-                               // Send test email
-                               if (user?.email) {
-                                 import('../../hooks/useAuth').then(async ({ getAccessToken }) => {
-                                   const token = await getAccessToken();
-                                   if (token) {
-                                     const emailBody = [
-                                       `To: ${user.email}`,
-                                       `Subject: Aura: Time to stretch! 🧘`,
-                                       `Content-Type: text/plain; charset=utf-8`,
-                                       '',
-                                       "Aura noticed you've been focused for a while. Take a 2-minute break.",
-                                       '',
-                                       '-- ',
-                                       'Sent by Aura Assistant'
-                                     ].join('\n');
-                                     const base64EncodedEmail = btoa(unescape(encodeURIComponent(emailBody)))
-                                       .replace(/\+/g, '-')
-                                       .replace(/\//g, '_')
-                                       .replace(/=+$/, '');
-                                     fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-                                       method: 'POST',
-                                       headers: {
-                                         'Authorization': `Bearer ${token}`,
-                                         'Content-Type': 'application/json'
-                                       },
-                                       body: JSON.stringify({ raw: base64EncodedEmail })
-                                     }).catch(e => console.error("Test email failed", e));
-                                   } else {
-                                     alert("Failed to send test email: Gmail token missing. Please sign out and sign in again.");
-                                   }
+                         onClick={async () => {
+                             alert("Aura is now sending a Test Email. Please wait...");
+                             if (user?.email) {
+                               try {
+                                 const { getAccessToken } = await import('../../hooks/useAuth');
+                                 const token = await getAccessToken();
+                                 if (!token) {
+                                   alert("Failed to send test email: Gmail token missing. Please sign out and sign in again to grant permissions.");
+                                   return;
+                                 }
+                                 
+                                 const emailBody = [
+                                   `To: ${user.email}`,
+                                   `Subject: Aura: Time to stretch! 🧘`,
+                                   `Content-Type: text/plain; charset=utf-8`,
+                                   '',
+                                   "Aura noticed you've been focused for a while. Take a 2-minute break.",
+                                   '',
+                                   '-- ',
+                                   'Sent by Aura Assistant'
+                                 ].join('\n');
+                                 
+                                 const base64EncodedEmail = btoa(unescape(encodeURIComponent(emailBody)))
+                                   .replace(/\+/g, '-')
+                                   .replace(/\//g, '_')
+                                   .replace(/=+$/, '');
+                                   
+                                 const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+                                   method: 'POST',
+                                   headers: {
+                                     'Authorization': `Bearer ${token}`,
+                                     'Content-Type': 'application/json'
+                                   },
+                                   body: JSON.stringify({ raw: base64EncodedEmail })
                                  });
+                                 
+                                 if (res.ok) {
+                                   alert("Test email sent successfully! Please check your inbox.");
+                                 } else {
+                                   const errorData = await res.json();
+                                   console.error("Test email API error:", errorData);
+                                   alert(`Failed to send test email: ${errorData.error?.message || res.statusText}. You might need to sign out and sign back in to grant Gmail permissions.`);
+                                 }
+                               } catch (err: any) {
+                                 console.error("Test email network error:", err);
+                                 alert(`Failed to send test email (Network Error): ${err.message}`);
                                }
-                             }, 5000);
+                             }
                          }}
                          className="w-full font-medium bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-3 py-2 rounded-lg border border-emerald-500/30 transition-colors"
                        >
